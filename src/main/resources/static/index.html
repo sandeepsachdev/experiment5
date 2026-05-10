@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>People Directory</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      color: #fff;
+      padding: 2rem 1.5rem 1.5rem;
+      text-align: center;
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+    header p  { margin-top: .4rem; opacity: .85; font-size: .95rem; }
+
+    .search-bar {
+      max-width: 860px;
+      margin: -1.25rem auto 0;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.1);
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: .75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+    .field label { font-size: .75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+    .field input {
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      padding: .55rem .75rem;
+      font-size: .95rem;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .field input:focus { border-color: #2563eb; }
+
+    button#searchBtn {
+      align-self: flex-end;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .6rem 1.4rem;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    button#searchBtn:hover { background: #1d4ed8; }
+    button#searchBtn:active { background: #1e40af; }
+
+    .results-header {
+      max-width: 860px;
+      margin: 2rem auto .75rem;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .results-header span { font-size: .9rem; color: #6b7280; }
+
+    .grid {
+      max-width: 860px;
+      margin: 0 auto 3rem;
+      padding: 0 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.25rem 1.25rem 1rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      border: 1px solid #e5e7eb;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); transform: translateY(-2px); }
+
+    .card-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: .75rem;
+    }
+
+    .card-name { font-size: 1rem; font-weight: 700; }
+    .card-title { font-size: .85rem; color: #2563eb; font-weight: 600; margin-top: .15rem; }
+
+    .card-meta { margin-top: .65rem; display: flex; flex-direction: column; gap: .3rem; }
+    .card-meta span { font-size: .82rem; color: #6b7280; display: flex; align-items: center; gap: .35rem; }
+    .card-meta svg { flex-shrink: 0; width: 13px; height: 13px; }
+
+    .empty {
+      max-width: 860px;
+      margin: 3rem auto;
+      text-align: center;
+      color: #9ca3af;
+      padding: 0 1rem;
+    }
+    .empty svg { width: 56px; height: 56px; margin-bottom: 1rem; opacity: .4; }
+    .empty p  { font-size: 1rem; }
+
+    @media (max-width: 640px) {
+      .search-bar { grid-template-columns: 1fr 1fr; }
+      button#searchBtn { grid-column: span 2; }
+    }
+    @media (max-width: 420px) {
+      .search-bar { grid-template-columns: 1fr; }
+      button#searchBtn { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>People Directory</h1>
+  <p>Search by name, country, or job title</p>
+</header>
+
+<div class="search-bar">
+  <div class="field">
+    <label for="name">Name</label>
+    <input id="name" type="text" placeholder="e.g. Alice" />
+  </div>
+  <div class="field">
+    <label for="country">Country</label>
+    <input id="country" type="text" placeholder="e.g. Germany" />
+  </div>
+  <div class="field">
+    <label for="jobTitle">Job Title</label>
+    <input id="jobTitle" type="text" placeholder="e.g. Engineer" />
+  </div>
+  <button id="searchBtn">Search</button>
+</div>
+
+<div class="results-header">
+  <span id="resultCount"></span>
+</div>
+
+<div class="grid" id="results"></div>
+
+<script>
+  const resultsEl   = document.getElementById('results');
+  const countEl     = document.getElementById('resultCount');
+  const nameInput   = document.getElementById('name');
+  const countryInput = document.getElementById('country');
+  const jobInput    = document.getElementById('jobTitle');
+
+  function initials(name) {
+    return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  function renderCard(p) {
+    return `
+      <div class="card">
+        <div class="card-avatar">${initials(p.name)}</div>
+        <div class="card-name">${esc(p.name)}</div>
+        <div class="card-title">${esc(p.jobTitle)}</div>
+        <div class="card-meta">
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 21l1.9-5.7A8.5 8.5 0 1 1 12 20.5" stroke-linecap="round"/>
+            </svg>
+            ${esc(p.country)}
+          </span>
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+            ${esc(p.company)}
+          </span>
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            ${esc(p.email)}
+          </span>
+        </div>
+      </div>`;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderEmpty() {
+    resultsEl.innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <p>No people found. Try broadening your search.</p>
+      </div>`;
+  }
+
+  async function search() {
+    const name     = nameInput.value.trim();
+    const country  = countryInput.value.trim();
+    const jobTitle = jobInput.value.trim();
+
+    const params = new URLSearchParams({ name, country, jobTitle });
+    const res = await fetch(`/api/people?${params}`);
+    const data = await res.json();
+
+    countEl.textContent = data.length === 0 ? '' : `${data.length} result${data.length === 1 ? '' : 's'}`;
+
+    if (data.length === 0) { renderEmpty(); return; }
+    resultsEl.innerHTML = data.map(renderCard).join('');
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', search);
+  [nameInput, countryInput, jobInput].forEach(el =>
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') search(); })
+  );
+
+  // Load all results on startup
+  search();
+</script>
+</body>
+</html>
