@@ -163,6 +163,43 @@
       pointer-events: none; display: none; white-space: nowrap; z-index: 200;
     }
 
+    /* ── View toggle ─────────────────────────────────────────────────────── */
+    .view-toggle { display: flex; background: #122033; border: 1px solid #1e3a5f; border-radius: 8px; overflow: hidden; }
+    .view-btn {
+      padding: 5px 16px; font-size: .75rem; font-weight: 600;
+      color: #7a9bbf; background: none; border: none; cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .view-btn.active { background: #009B77; color: #fff; }
+
+    /* ── Table view ──────────────────────────────────────────────────────── */
+    #table-wrap {
+      flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch;
+      padding: 20px 24px; display: none;
+    }
+    .trains-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .trains-table th {
+      background: #0f2336; color: #7a9bbf; font-weight: 600;
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+      padding: 11px 14px; text-align: left; white-space: nowrap;
+      position: sticky; top: 0; border-bottom: 2px solid #1e3a5f;
+      cursor: pointer; user-select: none;
+    }
+    .trains-table th:hover { color: #c5d5e5; }
+    .trains-table th.sort-asc::after  { content: ' ↑'; color: #009B77; }
+    .trains-table th.sort-desc::after { content: ' ↓'; color: #009B77; }
+    .trains-table td {
+      padding: 11px 14px; border-bottom: 1px solid #1a2f47;
+      color: #c5d5e5; vertical-align: middle;
+    }
+    .trains-table tr:hover td { background: #122033; }
+    .trains-table code {
+      background: #1e3a5f; padding: 2px 7px; border-radius: 4px;
+      font-family: monospace; font-size: .85em; color: #e8edf2;
+    }
+    .speed-val { font-size: .95rem; font-weight: 700; color: #e8edf2; }
+    .tbl-empty { text-align: center; padding: 56px 24px; color: #2a4a6a; font-size: .9rem; }
+
     /* ── Mobile ────────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
       /* Make the map scrollable; give SVG a fixed size matching the 1600:820
@@ -200,6 +237,10 @@
   <div class="spacer"></div>
   <span id="train-count"></span>
   <span id="update-time"></span>
+  <div class="view-toggle">
+    <button class="view-btn active" id="btn-map"   onclick="switchView('map')">Map</button>
+    <button class="view-btn"        id="btn-table" onclick="switchView('table')">Table</button>
+  </div>
   <div class="status-pill">
     <div class="status-dot" id="status-dot"></div>
     <span id="status-text">Connecting…</span>
@@ -254,6 +295,23 @@
     <div class="legend-row"><div class="legend-dot ix"></div><span>Interchange</span></div>
     <div class="legend-row"><div class="legend-train"></div><span>Live train (click for details)</span></div>
   </div>
+</div>
+
+<div id="table-wrap">
+  <table class="trains-table">
+    <thead><tr>
+      <th data-col="vehicleId">Train</th>
+      <th data-col="vehicleStatus">Status</th>
+      <th data-col="speed" class="sort-desc">Speed</th>
+      <th data-col="bearing">Direction</th>
+      <th data-col="routeId">Route</th>
+      <th data-col="tripId">Trip</th>
+      <th data-col="stopSequence">Stop #</th>
+      <th data-col="latitude">Position</th>
+    </tr></thead>
+    <tbody id="trains-tbody"></tbody>
+  </table>
+  <p id="tbl-empty" class="tbl-empty" style="display:none">No active trains</p>
 </div>
 
 <div id="tooltip"></div>
@@ -510,6 +568,64 @@ function setStatus(status, vehicles, lastUpdated) {
   if (lastUpdated) timeEl.textContent = 'Updated ' + new Date(lastUpdated).toLocaleTimeString();
 }
 
+// ── View toggle ───────────────────────────────────────────────────────────────
+const mapWrap   = document.querySelector('.map-wrap');
+const tableWrap = document.getElementById('table-wrap');
+
+function switchView(view) {
+  document.getElementById('btn-map').classList.toggle('active',   view === 'map');
+  document.getElementById('btn-table').classList.toggle('active', view === 'table');
+  mapWrap.style.display   = view === 'map'   ? '' : 'none';
+  tableWrap.style.display = view === 'table' ? '' : 'none';
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+let lastVehicles = [];
+let sortCol = 'speed';
+let sortDir = -1; // -1 = desc
+
+function updateTable(vehicles) {
+  const tbody   = document.getElementById('trains-tbody');
+  const emptyEl = document.getElementById('tbl-empty');
+  lastVehicles  = vehicles;
+
+  if (!vehicles || vehicles.length === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const rows = [...vehicles].sort((a, b) => {
+    let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+    if (sortCol === 'speed') { va = va || 0; vb = vb || 0; }
+    return sortDir * (typeof va === 'string' ? va.localeCompare(vb) : va - vb);
+  });
+
+  tbody.innerHTML = rows.map(v => `<tr>
+    <td><code>${esc(v.vehicleId)}</code></td>
+    <td>${statusBadge(v.vehicleStatus)}</td>
+    <td><span class="speed-val">${v.speed ? Math.round(v.speed * 3.6) : '—'}</span>${v.speed ? ' km/h' : ''}</td>
+    <td>${v.bearing ? bearingToDir(v.bearing) + ' ' + Math.round(v.bearing) + '°' : '—'}</td>
+    <td>${esc(v.routeId) || '—'}</td>
+    <td><small>${esc(v.tripId) || '—'}</small></td>
+    <td>${v.stopSequence || '—'}</td>
+    <td><small>${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}</small></td>
+  </tr>`).join('');
+}
+
+// Column sort
+document.querySelectorAll('.trains-table th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    sortDir = (sortCol === col) ? -sortDir : (col === 'speed' ? -1 : 1);
+    sortCol = col;
+    document.querySelectorAll('.trains-table th').forEach(h => h.className = '');
+    th.className = sortDir === 1 ? 'sort-asc' : 'sort-desc';
+    updateTable(lastVehicles);
+  });
+});
+
 // ── Poll ──────────────────────────────────────────────────────────────────────
 const INTERVAL = 30;
 let countdown = 0;
@@ -519,6 +635,7 @@ async function poll() {
     const data = await fetch('/api/metro/vehicles').then(r => r.json());
     setStatus(data.status, data.vehicles, data.lastUpdated);
     updateTrains(data.vehicles);
+    updateTable(data.vehicles);
   } catch { setStatus('fetch_error', [], null); }
   countdown = INTERVAL;
 }
