@@ -252,10 +252,10 @@ const STATIONS = [
   {id:'tallawong',        name:'Tallawong',            lat:-33.689, lon:150.910, ix:false},
   {id:'rouse-hill',       name:'Rouse Hill',           lat:-33.685, lon:150.918, ix:false},
   {id:'kellyville',       name:'Kellyville',           lat:-33.700, lon:150.937, ix:false},
+  {id:'bella-vista',      name:'Bella Vista',          lat:-33.706, lon:150.944, ix:false},
   {id:'norwest',          name:'Norwest',              lat:-33.715, lon:150.954, ix:false},
   {id:'hills-showground', name:'Hills Showground',     lat:-33.729, lon:150.972, ix:false},
   {id:'castle-hill',      name:'Castle Hill',          lat:-33.730, lon:151.004, ix:false},
-  {id:'bella-vista',      name:'Bella Vista',          lat:-33.741, lon:151.007, ix:false},
   {id:'cherrybrook',      name:'Cherrybrook',          lat:-33.751, lon:151.011, ix:false},
   {id:'epping',           name:'Epping',               lat:-33.772, lon:151.082, ix:true},
   {id:'macquarie-uni',    name:'Macquarie University', lat:-33.774, lon:151.117, ix:false},
@@ -267,16 +267,17 @@ const STATIONS = [
   {id:'barangaroo',       name:'Barangaroo',           lat:-33.860, lon:151.200, ix:false},
   {id:'martin-place',     name:'Martin Place',         lat:-33.868, lon:151.210, ix:true},
   {id:'gadigal',          name:'Gadigal',              lat:-33.876, lon:151.207, ix:false},
+  {id:'central',          name:'Central',              lat:-33.884, lon:151.206, ix:true},
   {id:'waterloo',         name:'Waterloo',             lat:-33.897, lon:151.203, ix:false},
   {id:'sydenham',         name:'Sydenham',             lat:-33.918, lon:151.170, ix:true},
 ];
 
 const LINES = [
-  { w:6, stations:['tallawong','rouse-hill','kellyville','norwest','hills-showground',
-      'castle-hill','bella-vista','cherrybrook','epping','macquarie-uni',
+  { w:6, stations:['tallawong','rouse-hill','kellyville','bella-vista','norwest','hills-showground',
+      'castle-hill','cherrybrook','epping','macquarie-uni',
       'macquarie-park','north-ryde','chatswood'] },
   { w:6, stations:['chatswood','crows-nest','victoria-cross','barangaroo',
-      'martin-place','gadigal','waterloo','sydenham'] },
+      'martin-place','gadigal','central','waterloo','sydenham'] },
 ];
 
 // Label offsets [dx, dy, textAnchor] – tuned for 1600×820 canvas
@@ -287,7 +288,7 @@ const LBL = {
   'norwest':          [  0, -13, 'middle'],
   'hills-showground': [  0,  17, 'middle'],
   'castle-hill':      [  0, -13, 'middle'],
-  'bella-vista':      [  0,  17, 'middle'],
+  'bella-vista':      [  0, -13, 'middle'],
   'cherrybrook':      [  0,  17, 'middle'],
   'epping':           [  0, -13, 'middle'],
   'macquarie-uni':    [  0,  17, 'middle'],
@@ -299,6 +300,7 @@ const LBL = {
   'barangaroo':       [-12,   4, 'end'],
   'martin-place':     [ 12,   4, 'start'],
   'gadigal':          [-12,   4, 'end'],
+  'central':          [-12,   4, 'end'],
   'waterloo':         [-12,   4, 'end'],
   'sydenham':         [-12,   4, 'end'],
 };

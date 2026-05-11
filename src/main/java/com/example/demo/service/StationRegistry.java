@@ -16,10 +16,10 @@ public class StationRegistry {
         new Station("tallawong",        "Tallawong",             -33.689, 150.910, "northwest", false),
         new Station("rouse-hill",       "Rouse Hill",            -33.685, 150.918, "northwest", false),
         new Station("kellyville",       "Kellyville",            -33.700, 150.937, "northwest", false),
+        new Station("bella-vista",      "Bella Vista",           -33.706, 150.944, "northwest", false),
         new Station("norwest",          "Norwest",               -33.715, 150.954, "northwest", false),
         new Station("hills-showground", "Hills Showground",      -33.729, 150.972, "northwest", false),
         new Station("castle-hill",      "Castle Hill",           -33.730, 151.004, "northwest", false),
-        new Station("bella-vista",      "Bella Vista",           -33.741, 151.007, "northwest", false),
         new Station("cherrybrook",      "Cherrybrook",           -33.751, 151.011, "northwest", false),
         new Station("epping",           "Epping",                -33.772, 151.082, "northwest", true),
         new Station("macquarie-uni",    "Macquarie University",  -33.774, 151.117, "northwest", false),
@@ -33,6 +33,7 @@ public class StationRegistry {
         new Station("barangaroo",       "Barangaroo",            -33.860, 151.200, "city", false),
         new Station("martin-place",     "Martin Place",          -33.868, 151.210, "city", true),
         new Station("gadigal",          "Gadigal",               -33.876, 151.207, "city", false),
+        new Station("central",          "Central",               -33.884, 151.206, "city", true),
         new Station("waterloo",         "Waterloo",              -33.897, 151.203, "city", false),
         new Station("sydenham",         "Sydenham",              -33.918, 151.170, "city", true)
     );
@@ -44,12 +45,12 @@ public class StationRegistry {
     public Map<String, Station> byId() { return BY_ID; }
 
     public static final List<String> NORTHWEST_ORDER = List.of(
-        "tallawong","rouse-hill","kellyville","norwest","hills-showground",
-        "castle-hill","bella-vista","cherrybrook","epping","macquarie-uni",
+        "tallawong","rouse-hill","kellyville","bella-vista","norwest","hills-showground",
+        "castle-hill","cherrybrook","epping","macquarie-uni",
         "macquarie-park","north-ryde","chatswood"
     );
     public static final List<String> CITY_ORDER = List.of(
         "chatswood","crows-nest","victoria-cross","barangaroo",
-        "martin-place","gadigal","waterloo","sydenham"
+        "martin-place","gadigal","central","waterloo","sydenham"
     );
 }
