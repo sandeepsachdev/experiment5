@@ -1,248 +1,559 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>People Directory</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sydney Metro Live</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f4f8;
-      color: #1a202c;
-      min-height: 100vh;
-    }
-
-    header {
-      background: linear-gradient(135deg, #2563eb, #1e40af);
-      color: #fff;
-      padding: 2rem 1.5rem 1.5rem;
-      text-align: center;
-    }
-    header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
-    header p  { margin-top: .4rem; opacity: .85; font-size: .95rem; }
-
-    .search-bar {
-      max-width: 860px;
-      margin: -1.25rem auto 0;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.1);
-      padding: 1.5rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto;
-      gap: .75rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .field {
+      background: #0d1b2a;
+      color: #e8edf2;
       display: flex;
       flex-direction: column;
-      gap: .3rem;
+      height: 100vh;
+      overflow: hidden;
     }
-    .field label { font-size: .75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
-    .field input {
-      border: 1.5px solid #e5e7eb;
-      border-radius: 8px;
-      padding: .55rem .75rem;
-      font-size: .95rem;
-      transition: border-color .15s;
-      outline: none;
-    }
-    .field input:focus { border-color: #2563eb; }
 
-    button#searchBtn {
-      align-self: flex-end;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: .6rem 1.4rem;
-      font-size: .95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
-      white-space: nowrap;
-    }
-    button#searchBtn:hover { background: #1d4ed8; }
-    button#searchBtn:active { background: #1e40af; }
-
-    .results-header {
-      max-width: 860px;
-      margin: 2rem auto .75rem;
-      padding: 0 1rem;
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      background: #0d1b2a;
+      border-bottom: 1px solid #1e3a5f;
+      padding: 0 20px;
+      height: 56px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-    }
-    .results-header span { font-size: .9rem; color: #6b7280; }
-
-    .grid {
-      max-width: 860px;
-      margin: 0 auto 3rem;
-      padding: 0 1rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 10;
     }
 
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1.25rem 1.25rem 1rem;
-      box-shadow: 0 1px 6px rgba(0,0,0,.07);
-      border: 1px solid #e5e7eb;
-      transition: box-shadow .15s, transform .15s;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); transform: translateY(-2px); }
-
-    .card-avatar {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 700;
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: #009B77;
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: .75rem;
+      font-size: 18px; font-weight: 900; color: #fff;
+      letter-spacing: -1px;
+    }
+    .logo-text h1 { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.1; }
+    .logo-text p  { font-size: .7rem; color: #7a9bbf; }
+
+    .spacer { flex: 1; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: #122033;
+      border: 1px solid #1e3a5f;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: .75rem;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #7a9bbf;
+      transition: background .3s;
+    }
+    .status-dot.ok    { background: #009B77; animation: pulse 2s infinite; }
+    .status-dot.error { background: #e05c5c; }
+    .status-dot.warn  { background: #f0a500; }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,155,119,.6); }
+      50%      { box-shadow: 0 0 0 5px rgba(0,155,119,0); }
     }
 
-    .card-name { font-size: 1rem; font-weight: 700; }
-    .card-title { font-size: .85rem; color: #2563eb; font-weight: 600; margin-top: .15rem; }
+    #status-text  { color: #c5d5e5; }
+    #train-count  { color: #7a9bbf; font-size: .7rem; }
+    #update-time  { color: #4a6a8a; font-size: .7rem; }
 
-    .card-meta { margin-top: .65rem; display: flex; flex-direction: column; gap: .3rem; }
-    .card-meta span { font-size: .82rem; color: #6b7280; display: flex; align-items: center; gap: .35rem; }
-    .card-meta svg { flex-shrink: 0; width: 13px; height: 13px; }
+    /* ── Map container ───────────────────────────────────────────────────── */
+    .map-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
 
-    .empty {
-      max-width: 860px;
-      margin: 3rem auto;
+    #metro-map {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ── Banner (no API key / error) ─────────────────────────────────────── */
+    #banner {
+      position: absolute;
+      top: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: #122033;
+      border: 1px solid #1e3a5f;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: .85rem;
+      color: #c5d5e5;
       text-align: center;
-      color: #9ca3af;
-      padding: 0 1rem;
+      max-width: 520px;
+      display: none;
     }
-    .empty svg { width: 56px; height: 56px; margin-bottom: 1rem; opacity: .4; }
-    .empty p  { font-size: 1rem; }
+    #banner a { color: #009B77; }
 
-    @media (max-width: 640px) {
-      .search-bar { grid-template-columns: 1fr 1fr; }
-      button#searchBtn { grid-column: span 2; }
+    /* ── Refresh countdown ───────────────────────────────────────────────── */
+    #countdown {
+      position: absolute;
+      bottom: 14px; right: 16px;
+      font-size: .7rem;
+      color: #3a5a7a;
     }
-    @media (max-width: 420px) {
-      .search-bar { grid-template-columns: 1fr; }
-      button#searchBtn { grid-column: span 1; }
+
+    /* ── Legend ──────────────────────────────────────────────────────────── */
+    .legend {
+      position: absolute;
+      bottom: 14px; left: 16px;
+      background: rgba(13,27,42,.85);
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .72rem;
+      color: #7a9bbf;
+      line-height: 1.8;
     }
+    .legend-row { display: flex; align-items: center; gap: 8px; }
+    .legend-line { width: 24px; height: 4px; border-radius: 2px; }
+    .legend-dot  { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #009B77; background: #0d1b2a; }
+    .legend-dot.ix { background: #009B77; }
+    .legend-train {
+      width: 20px; height: 12px; border-radius: 3px;
+      background: #009B77; display: inline-block;
+    }
+
+    /* ── SVG elements ────────────────────────────────────────────────────── */
+    .metro-line   { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .station-dot  { fill: #0d1b2a; stroke: #009B77; stroke-width: 2; cursor: pointer; }
+    .station-dot.interchange { fill: #009B77; }
+    .station-label {
+      font-size: 9px; fill: #c5d5e5;
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .station-label.interchange { font-weight: 700; font-size: 10px; fill: #fff; }
+
+    .train-group {
+      transition: transform 3s cubic-bezier(.25,.8,.25,1);
+      cursor: pointer;
+    }
+    .train-body {
+      fill: #009B77;
+      stroke: rgba(255,255,255,.25);
+      stroke-width: 1;
+    }
+    .train-label { font-size: 7px; fill: #fff; font-weight: 700; text-anchor: middle; pointer-events: none; }
+
+    .train-group.stopped .train-body {
+      fill: #00c4a0;
+      filter: drop-shadow(0 0 4px rgba(0,196,160,.7));
+    }
+
+    /* tooltip */
+    #tooltip {
+      position: absolute;
+      background: #122033;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .78rem;
+      color: #c5d5e5;
+      pointer-events: none;
+      display: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    #tooltip b { color: #fff; }
+    #tooltip .tt-row { color: #7a9bbf; margin-top: 2px; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>People Directory</h1>
-  <p>Search by name, country, or job title</p>
+  <div class="logo">
+    <div class="logo-icon">M</div>
+    <div class="logo-text">
+      <h1>Sydney Metro Live</h1>
+      <p>Real-time train positions · Transport NSW</p>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div id="train-count"></div>
+  <div id="update-time"></div>
+  <div class="status-pill">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Connecting…</span>
+  </div>
 </header>
 
-<div class="search-bar">
-  <div class="field">
-    <label for="name">Name</label>
-    <input id="name" type="text" placeholder="e.g. Alice" />
+<div class="map-wrap">
+  <svg id="metro-map" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid meet">
+    <!-- Background -->
+    <rect width="900" height="700" fill="#0d1b2a"/>
+
+    <!-- Subtle grid -->
+    <g id="grid" opacity="0.04">
+      <line x1="0" y1="100" x2="900" y2="100" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="200" x2="900" y2="200" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="300" x2="900" y2="300" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="400" x2="900" y2="400" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="500" x2="900" y2="500" stroke="#fff" stroke-width="1"/>
+      <line x1="0" y1="600" x2="900" y2="600" stroke="#fff" stroke-width="1"/>
+      <line x1="100" y1="0" x2="100" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="200" y1="0" x2="200" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="300" y1="0" x2="300" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="400" y1="0" x2="400" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="500" y1="0" x2="500" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="600" y1="0" x2="600" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="700" y1="0" x2="700" y2="700" stroke="#fff" stroke-width="1"/>
+      <line x1="800" y1="0" x2="800" y2="700" stroke="#fff" stroke-width="1"/>
+    </g>
+
+    <!-- Lines (drawn by JS) -->
+    <g id="lines"></g>
+
+    <!-- Station dots (drawn by JS) -->
+    <g id="station-dots"></g>
+
+    <!-- Station labels (drawn by JS) -->
+    <g id="station-labels"></g>
+
+    <!-- Live trains (updated by JS) -->
+    <g id="trains"></g>
+  </svg>
+
+  <div id="banner"></div>
+  <div id="countdown"></div>
+
+  <div class="legend">
+    <div class="legend-row">
+      <div class="legend-line" style="background:#009B77"></div>
+      <span>Sydney Metro</span>
+    </div>
+    <div class="legend-row" style="margin-top:6px">
+      <div class="legend-dot"></div>
+      <span>Station</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-dot ix"></div>
+      <span>Interchange</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-train"></div>
+      <span>Live train</span>
+    </div>
   </div>
-  <div class="field">
-    <label for="country">Country</label>
-    <input id="country" type="text" placeholder="e.g. Germany" />
-  </div>
-  <div class="field">
-    <label for="jobTitle">Job Title</label>
-    <input id="jobTitle" type="text" placeholder="e.g. Engineer" />
-  </div>
-  <button id="searchBtn">Search</button>
 </div>
 
-<div class="results-header">
-  <span id="resultCount"></span>
-</div>
-
-<div class="grid" id="results"></div>
+<div id="tooltip"></div>
 
 <script>
-  const resultsEl   = document.getElementById('results');
-  const countEl     = document.getElementById('resultCount');
-  const nameInput   = document.getElementById('name');
-  const countryInput = document.getElementById('country');
-  const jobInput    = document.getElementById('jobTitle');
+// ── Map projection ──────────────────────────────────────────────────────────
+const BOUNDS = { minLat: -33.960, maxLat: -33.640, minLon: 150.870, maxLon: 151.270 };
+const VW = 900, VH = 700, MARGIN = 50;
 
-  function initials(name) {
-    return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+function project(lat, lon) {
+  const x = (lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon) * (VW - 2*MARGIN) + MARGIN;
+  const y = (BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat) * (VH - 2*MARGIN) + MARGIN;
+  return [x, y];
+}
+
+// ── Static network data ─────────────────────────────────────────────────────
+const STATIONS = [
+  {id:'tallawong',        name:'Tallawong',            lat:-33.689, lon:150.910, ix:false},
+  {id:'rouse-hill',       name:'Rouse Hill',           lat:-33.685, lon:150.918, ix:false},
+  {id:'kellyville',       name:'Kellyville',           lat:-33.700, lon:150.937, ix:false},
+  {id:'norwest',          name:'Norwest',              lat:-33.715, lon:150.954, ix:false},
+  {id:'hills-showground', name:'Hills Showground',     lat:-33.729, lon:150.972, ix:false},
+  {id:'bella-vista',      name:'Bella Vista',          lat:-33.741, lon:150.977, ix:false},
+  {id:'cherrybrook',      name:'Cherrybrook',          lat:-33.751, lon:151.011, ix:false},
+  {id:'epping',           name:'Epping',               lat:-33.772, lon:151.082, ix:true},
+  {id:'macquarie-uni',    name:'Macquarie University', lat:-33.774, lon:151.117, ix:false},
+  {id:'macquarie-park',   name:'Macquarie Park',       lat:-33.778, lon:151.123, ix:false},
+  {id:'north-ryde',       name:'North Ryde',           lat:-33.800, lon:151.133, ix:false},
+  {id:'chatswood',        name:'Chatswood',            lat:-33.797, lon:151.183, ix:true},
+  {id:'crows-nest',       name:'Crows Nest',           lat:-33.827, lon:151.207, ix:false},
+  {id:'victoria-cross',   name:'Victoria Cross',       lat:-33.839, lon:151.210, ix:false},
+  {id:'barangaroo',       name:'Barangaroo',           lat:-33.860, lon:151.200, ix:false},
+  {id:'martin-place',     name:'Martin Place',         lat:-33.868, lon:151.210, ix:true},
+  {id:'gadigal',          name:'Gadigal',              lat:-33.876, lon:151.207, ix:false},
+  {id:'waterloo',         name:'Waterloo',             lat:-33.897, lon:151.203, ix:false},
+  {id:'sydenham',         name:'Sydenham',             lat:-33.918, lon:151.170, ix:true},
+  {id:'marrickville',     name:'Marrickville',         lat:-33.910, lon:151.161, ix:false},
+  {id:'dulwich-hill',     name:'Dulwich Hill',         lat:-33.913, lon:151.134, ix:false},
+  {id:'hurlstone-park',   name:'Hurlstone Park',       lat:-33.916, lon:151.120, ix:false},
+  {id:'canterbury',       name:'Canterbury',           lat:-33.916, lon:151.112, ix:false},
+  {id:'campsie',          name:'Campsie',              lat:-33.909, lon:151.103, ix:false},
+  {id:'belmore',          name:'Belmore',              lat:-33.918, lon:151.092, ix:false},
+  {id:'lakemba',          name:'Lakemba',              lat:-33.920, lon:151.073, ix:false},
+  {id:'wiley-park',       name:'Wiley Park',           lat:-33.928, lon:151.070, ix:false},
+  {id:'punchbowl',        name:'Punchbowl',            lat:-33.927, lon:151.053, ix:false},
+  {id:'bankstown',        name:'Bankstown',            lat:-33.917, lon:151.034, ix:true},
+];
+
+const LINES = [
+  { id:'northwest', color:'#009B77', width:5, stations:[
+    'tallawong','rouse-hill','kellyville','norwest','hills-showground',
+    'bella-vista','cherrybrook','epping','macquarie-uni','macquarie-park',
+    'north-ryde','chatswood'] },
+  { id:'city', color:'#009B77', width:5, stations:[
+    'chatswood','crows-nest','victoria-cross','barangaroo',
+    'martin-place','gadigal','waterloo','sydenham'] },
+  { id:'bankstown', color:'#009B77', width:5, stations:[
+    'sydenham','marrickville','dulwich-hill','hurlstone-park',
+    'canterbury','campsie','belmore','lakemba','wiley-park','punchbowl','bankstown'] },
+];
+
+// ── SVG helpers ─────────────────────────────────────────────────────────────
+const svgNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, parent) {
+  const el = document.createElementNS(svgNS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+// ── Draw static network ─────────────────────────────────────────────────────
+const stationMap = Object.fromEntries(STATIONS.map(s => [s.id, s]));
+STATIONS.forEach(s => { const [x,y] = project(s.lat, s.lon); s.x = x; s.y = y; });
+
+const linesG   = document.getElementById('lines');
+const dotsG    = document.getElementById('station-dots');
+const labelsG  = document.getElementById('station-labels');
+const trainsG  = document.getElementById('trains');
+
+LINES.forEach(line => {
+  const pts = line.stations.map(id => {
+    const s = stationMap[id];
+    return `${s.x.toFixed(1)},${s.y.toFixed(1)}`;
+  }).join(' ');
+
+  // Thicker shadow for depth
+  svgEl('polyline', {
+    points: pts, class: 'metro-line',
+    stroke: 'rgba(0,155,119,.25)', 'stroke-width': line.width + 4
+  }, linesG);
+  svgEl('polyline', {
+    points: pts, class: 'metro-line',
+    stroke: line.color, 'stroke-width': line.width
+  }, linesG);
+});
+
+// Label offsets — hand-tuned so labels don't overlap the lines
+const LABEL_OFFSETS = {
+  // NW line: labels alternating above/below
+  'tallawong':        [-2, -10, 'end'],
+  'rouse-hill':       [6,  -10, 'start'],
+  'kellyville':       [6,  -10, 'start'],
+  'norwest':          [6,  -10, 'start'],
+  'hills-showground': [6,   14, 'start'],
+  'bella-vista':      [6,   14, 'start'],
+  'cherrybrook':      [6,   14, 'start'],
+  'epping':           [8,   -10, 'start'],
+  'macquarie-uni':    [6,    14, 'start'],
+  'macquarie-park':   [6,   -10, 'start'],
+  'north-ryde':       [-8,  14, 'end'],
+  // City & junction
+  'chatswood':        [10,  -10, 'start'],
+  'crows-nest':       [10,    4, 'start'],
+  'victoria-cross':   [10,    4, 'start'],
+  'barangaroo':       [-10,   4, 'end'],
+  'martin-place':     [10,    4, 'start'],
+  'gadigal':          [-10,   4, 'end'],
+  'waterloo':         [-10,   4, 'end'],
+  'sydenham':         [10,   -8, 'start'],
+  // Bankstown: labels below stations (line runs roughly left)
+  'marrickville':     [0,    14, 'middle'],
+  'dulwich-hill':     [0,    14, 'middle'],
+  'hurlstone-park':   [0,    14, 'middle'],
+  'canterbury':       [0,    14, 'middle'],
+  'campsie':          [0,   -10, 'middle'],
+  'belmore':          [0,    14, 'middle'],
+  'lakemba':          [0,   -10, 'middle'],
+  'wiley-park':       [0,    14, 'middle'],
+  'punchbowl':        [0,   -10, 'middle'],
+  'bankstown':        [0,    14, 'middle'],
+};
+
+STATIONS.forEach(s => {
+  const r = s.ix ? 7 : 5;
+  const dot = svgEl('circle', {
+    cx: s.x, cy: s.y, r,
+    class: 'station-dot' + (s.ix ? ' interchange' : ''),
+    'data-id': s.id
+  }, dotsG);
+
+  dot.addEventListener('mouseenter', e => showTooltip(e, `<b>${s.name}</b><div class="tt-row">${s.ix ? 'Interchange station' : 'Metro station'}</div>`));
+  dot.addEventListener('mouseleave', hideTooltip);
+
+  const [dx, dy, anchor] = LABEL_OFFSETS[s.id] || [8, 4, 'start'];
+  svgEl('text', {
+    x: s.x + dx, y: s.y + dy,
+    class: 'station-label' + (s.ix ? ' interchange' : ''),
+    'text-anchor': anchor
+  }, labelsG).textContent = s.name;
+});
+
+// ── Tooltip ─────────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function showTooltip(e, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  moveTooltip(e);
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top  = (e.clientY - 10) + 'px';
+}
+document.addEventListener('mousemove', e => {
+  if (tooltip.style.display === 'block') moveTooltip(e);
+});
+
+// ── Train rendering ──────────────────────────────────────────────────────────
+let trainEls = {}; // vehicleId → <g>
+
+function updateTrains(vehicles) {
+  const seen = new Set();
+
+  vehicles.forEach(v => {
+    const [x, y] = project(v.latitude, v.longitude);
+    const stopped = v.vehicleStatus === 'STOPPED_AT';
+    const label   = v.vehicleId ? v.vehicleId.slice(-3) : 'M';
+    seen.add(v.vehicleId);
+
+    if (trainEls[v.vehicleId]) {
+      // Move existing train
+      const g = trainEls[v.vehicleId];
+      g.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      g.classList.toggle('stopped', stopped);
+    } else {
+      // Create new train element
+      const g = document.createElementNS(svgNS, 'g');
+      g.setAttribute('class', 'train-group' + (stopped ? ' stopped' : ''));
+      g.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      g.style.transition = 'transform 3s cubic-bezier(.25,.8,.25,1)';
+
+      svgEl('rect', {
+        x: -12, y: -7, width: 24, height: 14, rx: 3, class: 'train-body'
+      }, g);
+      const txt = document.createElementNS(svgNS, 'text');
+      txt.setAttribute('class', 'train-label');
+      txt.setAttribute('x', 0);
+      txt.setAttribute('y', 5);
+      txt.textContent = label;
+      g.appendChild(txt);
+
+      g.addEventListener('mouseenter', e => {
+        const kmh = v.speed ? Math.round(v.speed * 3.6) + ' km/h' : 'unknown speed';
+        const status = v.vehicleStatus.replace(/_/g, ' ').toLowerCase();
+        showTooltip(e,
+          `<b>Train ${esc(v.vehicleId)}</b>` +
+          `<div class="tt-row">Trip: ${esc(v.tripId || '—')}</div>` +
+          `<div class="tt-row">Speed: ${kmh}</div>` +
+          `<div class="tt-row">Status: ${esc(status)}</div>`
+        );
+      });
+      g.addEventListener('mouseleave', hideTooltip);
+
+      trainsG.appendChild(g);
+      trainEls[v.vehicleId] = g;
+    }
+  });
+
+  // Remove trains no longer in the feed
+  for (const [id, el] of Object.entries(trainEls)) {
+    if (!seen.has(id)) {
+      el.remove();
+      delete trainEls[id];
+    }
+  }
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Status UI ────────────────────────────────────────────────────────────────
+const statusDot  = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const trainCount = document.getElementById('train-count');
+const updateTime = document.getElementById('update-time');
+const banner     = document.getElementById('banner');
+const countdown  = document.getElementById('countdown');
+
+function setStatus(status, message, vehicles, lastUpdated) {
+  statusDot.className = 'status-dot';
+  banner.style.display = 'none';
+
+  if (status === 'ok') {
+    statusDot.classList.add('ok');
+    statusText.textContent = 'Live';
+    trainCount.textContent = `${vehicles.length} train${vehicles.length !== 1 ? 's' : ''} active`;
+  } else if (status === 'no_api_key') {
+    statusDot.classList.add('warn');
+    statusText.textContent = 'No API key';
+    trainCount.textContent = '';
+    banner.innerHTML =
+      `<b>Configure your Transport NSW API key to see live trains.</b><br>
+       Get a free key at <a href="https://opendata.transport.nsw.gov.au" target="_blank">opendata.transport.nsw.gov.au</a>,
+       then set the <code>TRANSPORT_NSW_API_KEY</code> environment variable on Render.`;
+    banner.style.display = 'block';
+  } else if (status === 'fetch_error') {
+    statusDot.classList.add('error');
+    statusText.textContent = 'Fetch error';
+    trainCount.textContent = '';
+  } else {
+    statusText.textContent = 'Connecting…';
+    trainCount.textContent = '';
   }
 
-  function renderCard(p) {
-    return `
-      <div class="card">
-        <div class="card-avatar">${initials(p.name)}</div>
-        <div class="card-name">${esc(p.name)}</div>
-        <div class="card-title">${esc(p.jobTitle)}</div>
-        <div class="card-meta">
-          <span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 21l1.9-5.7A8.5 8.5 0 1 1 12 20.5" stroke-linecap="round"/>
-            </svg>
-            ${esc(p.country)}
-          </span>
-          <span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="7" width="20" height="14" rx="2"/>
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-            </svg>
-            ${esc(p.company)}
-          </span>
-          <span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            ${esc(p.email)}
-          </span>
-        </div>
-      </div>`;
+  if (lastUpdated) {
+    const d = new Date(lastUpdated);
+    updateTime.textContent = 'Updated ' + d.toLocaleTimeString();
   }
+}
 
-  function esc(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+// ── Polling ──────────────────────────────────────────────────────────────────
+const INTERVAL = 30; // seconds
+let secondsLeft = 0;
 
-  function renderEmpty() {
-    resultsEl.innerHTML = `
-      <div class="empty" style="grid-column:1/-1">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <p>No people found. Try broadening your search.</p>
-      </div>`;
-  }
-
-  async function search() {
-    const name     = nameInput.value.trim();
-    const country  = countryInput.value.trim();
-    const jobTitle = jobInput.value.trim();
-
-    const params = new URLSearchParams({ name, country, jobTitle });
-    const res = await fetch(`/api/people?${params}`);
+async function poll() {
+  try {
+    const res  = await fetch('/api/metro/vehicles');
     const data = await res.json();
-
-    countEl.textContent = data.length === 0 ? '' : `${data.length} result${data.length === 1 ? '' : 's'}`;
-
-    if (data.length === 0) { renderEmpty(); return; }
-    resultsEl.innerHTML = data.map(renderCard).join('');
+    setStatus(data.status, data.message, data.vehicles, data.lastUpdated);
+    updateTrains(data.vehicles);
+  } catch (e) {
+    setStatus('fetch_error', 'Network error', [], null);
   }
+  secondsLeft = INTERVAL;
+}
 
-  document.getElementById('searchBtn').addEventListener('click', search);
-  [nameInput, countryInput, jobInput].forEach(el =>
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') search(); })
-  );
+function tick() {
+  if (secondsLeft > 0) {
+    secondsLeft--;
+    countdown.textContent = `Refreshing in ${secondsLeft}s`;
+  } else {
+    countdown.textContent = 'Refreshing…';
+    poll();
+  }
+}
 
-  // Load all results on startup
-  search();
+poll();
+setInterval(tick, 1000);
 </script>
 </body>
 </html>

@@ -12,14 +12,15 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>demo</artifactId>
+    <artifactId>sydney-metro</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>demo</name>
-    <description>Spring Boot REST API deployable to Render</description>
+    <name>sydney-metro</name>
+    <description>Sydney Metro live tracker using Transport NSW GTFS-RT</description>
 
     <properties>
         <java.version>21</java.version>
+        <protobuf.version>3.25.3</protobuf.version>
     </properties>
 
     <dependencies>
@@ -31,10 +32,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- Protobuf runtime — used to parse the GTFS-Realtime binary feed -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -44,6 +49,25 @@
 
     <build>
         <plugins>
+            <!-- Compile gtfs-realtime.proto → GtfsRealtime.java at generate-sources -->
+            <plugin>
+                <groupId>com.github.os72</groupId>
+                <artifactId>protoc-jar-maven-plugin</artifactId>
+                <version>3.11.4</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <protocVersion>${protobuf.version}</protocVersion>
+                            <inputDirectories>
+                                <directory>src/main/proto</directory>
+                            </inputDirectories>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
