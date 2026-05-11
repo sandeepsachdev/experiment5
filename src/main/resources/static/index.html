@@ -145,17 +145,17 @@
     .station-dot  { fill: #0d1b2a; stroke: #009B77; stroke-width: 2; cursor: pointer; }
     .station-dot.ix { fill: #009B77; }
     .station-label {
-      font-size: 10px; fill: #b0c8df;
+      font-size: 13px; fill: #b0c8df;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       pointer-events: none;
     }
-    .station-label.ix { fill: #fff; font-weight: 700; font-size: 11px; }
+    .station-label.ix { fill: #fff; font-weight: 700; font-size: 14px; }
 
     .train-group { cursor: pointer; }
     .train-body  { fill: #009B77; stroke: rgba(255,255,255,.15); stroke-width: 1; transition: fill .2s; }
     .train-body.stopped  { fill: #00d4aa; filter: drop-shadow(0 0 5px rgba(0,212,170,.8)); }
     .train-body.selected { stroke: #fff; stroke-width: 2; filter: drop-shadow(0 0 6px rgba(255,255,255,.6)); }
-    .train-label { font-size: 7px; fill: #fff; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .train-label { font-size: 9px; fill: #fff; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 
     #tooltip {
       position: fixed; background: #122033; border: 1px solid #1e3a5f;
@@ -184,7 +184,7 @@
 </header>
 
 <div class="map-wrap">
-  <svg id="metro-map" viewBox="0 0 1600 820" preserveAspectRatio="none">
+  <svg id="metro-map" viewBox="0 0 1600 820" preserveAspectRatio="xMidYMid slice" text-rendering="geometricPrecision">
     <rect width="1600" height="820" fill="#0d1b2a"/>
     <g opacity="0.03" stroke="#fff" stroke-width="1">
       <line x1="0" y1="164" x2="1600" y2="164"/><line x1="0" y1="328" x2="1600" y2="328"/>
@@ -238,8 +238,8 @@
 <script>
 // ── Projection ────────────────────────────────────────────────────────────────
 // Bounds fitted to Tallawong → Sydenham (no Bankstown)
-const BOUNDS = { minLat:-33.935, maxLat:-33.660, minLon:150.885, maxLon:151.240 };
-const VW=1600, VH=820, MX=80, MY=55;
+const BOUNDS = { minLat:-33.950, maxLat:-33.645, minLon:150.850, maxLon:151.265 };
+const VW=1600, VH=820, MX=90, MY=65;
 
 function project(lat, lon) {
   const x = (lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon) * (VW - MX*2) + MX;
@@ -282,27 +282,29 @@ const LINES = [
 
 // Label offsets [dx, dy, textAnchor] – tuned for 1600×820 canvas
 const LBL = {
-  'tallawong':        [  0, -13, 'middle'],
-  'rouse-hill':       [  0, -13, 'middle'],
-  'kellyville':       [  0, -13, 'middle'],
-  'norwest':          [  0, -13, 'middle'],
-  'hills-showground': [  0,  17, 'middle'],
-  'castle-hill':      [  0, -13, 'middle'],
-  'bella-vista':      [  0, -13, 'middle'],
-  'cherrybrook':      [  0,  17, 'middle'],
-  'epping':           [  0, -13, 'middle'],
-  'macquarie-uni':    [  0,  17, 'middle'],
-  'macquarie-park':   [  0, -13, 'middle'],
-  'north-ryde':       [  0,  17, 'middle'],
-  'chatswood':        [ 12,   4, 'start'],
-  'crows-nest':       [ 12,   4, 'start'],
-  'victoria-cross':   [ 12,   4, 'start'],
-  'barangaroo':       [-12,   4, 'end'],
-  'martin-place':     [ 12,   4, 'start'],
-  'gadigal':          [-12,   4, 'end'],
-  'central':          [-12,   4, 'end'],
-  'waterloo':         [-12,   4, 'end'],
-  'sydenham':         [-12,   4, 'end'],
+  // NW line – alternate above/below; Macquarie cluster gets side labels
+  'tallawong':        [  0, -17, 'middle'],
+  'rouse-hill':       [  0,  20, 'middle'],
+  'kellyville':       [  0, -17, 'middle'],
+  'bella-vista':      [  0,  20, 'middle'],
+  'norwest':          [  0, -17, 'middle'],
+  'hills-showground': [  0,  20, 'middle'],
+  'castle-hill':      [  0, -17, 'middle'],
+  'cherrybrook':      [  0,  20, 'middle'],
+  'epping':           [  0, -17, 'middle'],
+  'macquarie-uni':    [-14,   4, 'end'],
+  'macquarie-park':   [ 14,   4, 'start'],
+  'north-ryde':       [  0,  20, 'middle'],
+  // City line – alternate left/right (stations are nearly vertical)
+  'chatswood':        [ 14,   4, 'start'],
+  'crows-nest':       [ 14,   4, 'start'],
+  'victoria-cross':   [-14,   4, 'end'],
+  'barangaroo':       [-14,   4, 'end'],
+  'martin-place':     [ 14,   4, 'start'],
+  'gadigal':          [-14,   4, 'end'],
+  'central':          [ 14,   4, 'start'],
+  'waterloo':         [-14,   4, 'end'],
+  'sydenham':         [  0,  20, 'middle'],
 };
 
 // ── Build static SVG ──────────────────────────────────────────────────────────
@@ -329,7 +331,7 @@ function moveTip(e)       { tipEl.style.left=(e.clientX+14)+'px'; tipEl.style.to
 document.addEventListener('mousemove', e => { if(tipEl.style.display==='block') moveTip(e); });
 
 STATIONS.forEach(s => {
-  const r = s.ix ? 8 : 5;
+  const r = s.ix ? 9 : 6;
   const dot = document.createElementNS(NS,'circle');
   dot.setAttribute('cx',s.x); dot.setAttribute('cy',s.y); dot.setAttribute('r',r);
   dot.setAttribute('class','station-dot'+(s.ix?' ix':''));
