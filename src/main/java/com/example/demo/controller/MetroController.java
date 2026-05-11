@@ -42,8 +42,7 @@ public class MetroController {
     public Map<String, List<String>> lines() {
         return Map.of(
             "northwest", StationRegistry.NORTHWEST_ORDER,
-            "city",      StationRegistry.CITY_ORDER,
-            "bankstown",  StationRegistry.BANKSTOWN_ORDER
+            "city",      StationRegistry.CITY_ORDER
         );
     }
 }

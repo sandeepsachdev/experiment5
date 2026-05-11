@@ -22,9 +22,9 @@ public class MetroDataService {
 
     private static final Logger log = LoggerFactory.getLogger(MetroDataService.class);
 
-    // Sydney Metro bounding box — discard positions outside this area
-    private static final double MIN_LAT = -34.2, MAX_LAT = -33.4;
-    private static final double MIN_LON = 150.6, MAX_LON = 151.6;
+    // Sydney Metro corridor bounding box (Tallawong → Sydenham)
+    private static final double MIN_LAT = -34.0, MAX_LAT = -33.4;
+    private static final double MIN_LON = 150.7, MAX_LON = 151.5;
 
     @Value("${transport.nsw.api.key:}")
     private String apiKey;
@@ -41,25 +41,17 @@ public class MetroDataService {
     }
 
     @PostConstruct
-    void init() {
-        fetchAndCache();
-    }
+    void init() { fetchAndCache(); }
 
     @Scheduled(fixedDelay = 30_000)
-    void refresh() {
-        fetchAndCache();
-    }
+    void refresh() { fetchAndCache(); }
 
-    public VehicleResponse latest() {
-        return cache.get();
-    }
+    public VehicleResponse latest() { return cache.get(); }
 
     private void fetchAndCache() {
         if (apiKey == null || apiKey.isBlank()) {
             cache.set(new VehicleResponse(
-                List.of(),
-                Instant.now().toString(),
-                "no_api_key",
+                List.of(), Instant.now().toString(), "no_api_key",
                 "Set the TRANSPORT_NSW_API_KEY environment variable to see live trains."
             ));
             return;
@@ -89,16 +81,14 @@ public class MetroDataService {
 
                 double lat = vp.getPosition().getLatitude();
                 double lon = vp.getPosition().getLongitude();
-
                 if (lat == 0 && lon == 0) continue;
                 if (lat < MIN_LAT || lat > MAX_LAT || lon < MIN_LON || lon > MAX_LON) continue;
 
                 vehicles.add(new Vehicle(
                         vp.hasVehicle() ? vp.getVehicle().getId() : entity.getId(),
-                        vp.hasTrip()    ? vp.getTrip().getTripId()   : "",
-                        vp.hasTrip()    ? vp.getTrip().getRouteId()  : "",
-                        lat,
-                        lon,
+                        vp.hasTrip()    ? vp.getTrip().getTripId()  : "",
+                        vp.hasTrip()    ? vp.getTrip().getRouteId() : "",
+                        lat, lon,
                         vp.getPosition().getBearing(),
                         vp.getPosition().getSpeed(),
                         vp.getTimestamp(),
@@ -115,11 +105,8 @@ public class MetroDataService {
         } catch (Exception e) {
             log.error("Failed to fetch vehicle positions: {}", e.getMessage());
             VehicleResponse prev = cache.get();
-            // Keep previous vehicles so the map doesn't go blank on a transient error
             cache.set(new VehicleResponse(
-                prev.vehicles(),
-                Instant.now().toString(),
-                "fetch_error",
+                prev.vehicles(), Instant.now().toString(), "fetch_error",
                 "Fetch failed: " + e.getMessage()
             ));
         }

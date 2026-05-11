@@ -43,8 +43,7 @@
       border-radius: 20px; padding: 4px 12px; font-size: .75rem;
     }
     .status-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #7a9bbf;
-      transition: background .3s;
+      width: 8px; height: 8px; border-radius: 50%; background: #7a9bbf; transition: background .3s;
     }
     .status-dot.ok    { background: #009B77; animation: pulse 2s infinite; }
     .status-dot.error { background: #e05c5c; }
@@ -57,20 +56,8 @@
     #train-count { color: #7a9bbf; font-size: .7rem; }
     #update-time { color: #4a6a8a; font-size: .7rem; }
 
-    .map-wrap {
-      flex: 1;
-      min-height: 0;      /* allow flex child to shrink */
-      position: relative;
-      overflow: hidden;
-    }
-
-    #metro-map {
-      display: block;
-      width: 100%;
-      height: 100%;
-      /* "none" fills the container exactly — no letterboxing */
-      /* viewBox 1600:820 ≈ 16:9 so distortion is negligible on modern screens */
-    }
+    .map-wrap { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+    #metro-map { display: block; width: 100%; height: 100%; }
 
     #banner {
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -98,7 +85,63 @@
     .legend-dot.ix { background: #009B77; }
     .legend-train { width: 20px; height: 11px; border-radius: 3px; background: #009B77; display: inline-block; }
 
-    /* SVG element styles (applied via class attribute in createElementNS) */
+    /* ── Train detail panel ─────────────────────────────────────────────── */
+    #train-panel {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 272px;
+      background: #0f2336;
+      border: 1px solid #1e3a5f;
+      border-radius: 12px;
+      overflow: hidden;
+      transform: translateX(310px);
+      opacity: 0;
+      transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+      z-index: 50;
+    }
+    #train-panel.open { transform: translateX(0); opacity: 1; }
+
+    .panel-head {
+      background: #009B77;
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 900; color: #fff; flex-shrink: 0;
+    }
+    .panel-head-text { flex: 1; min-width: 0; }
+    .panel-head-text h2 { font-size: .95rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .panel-head-text p  { font-size: .72rem; color: rgba(255,255,255,.75); margin-top: 1px; }
+    .panel-close {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,.2); color: #fff; font-size: 16px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .panel-close:hover { background: rgba(0,0,0,.4); }
+
+    .panel-body { padding: 14px 16px; }
+    .panel-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 6px 0; border-bottom: 1px solid #1e3a5f;
+    }
+    .panel-row:last-child { border-bottom: none; }
+    .panel-key   { font-size: .72rem; color: #7a9bbf; }
+    .panel-value { font-size: .82rem; color: #e8edf2; font-weight: 500; text-align: right; max-width: 160px; word-break: break-all; }
+
+    .status-badge {
+      display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .7rem; font-weight: 600;
+    }
+    .status-badge.transit  { background: rgba(0,155,119,.2); color: #009B77; }
+    .status-badge.stopped  { background: rgba(0,212,170,.2); color: #00d4aa; }
+    .status-badge.incoming { background: rgba(240,165,0,.2); color: #f0a500; }
+
+    /* SVG classes */
     .station-dot  { fill: #0d1b2a; stroke: #009B77; stroke-width: 2; cursor: pointer; }
     .station-dot.ix { fill: #009B77; }
     .station-label {
@@ -109,17 +152,16 @@
     .station-label.ix { fill: #fff; font-weight: 700; font-size: 11px; }
 
     .train-group { cursor: pointer; }
-    .train-body  { fill: #009B77; stroke: rgba(255,255,255,.2); stroke-width: 1; }
-    .train-body.stopped { fill: #00d4aa; filter: drop-shadow(0 0 5px rgba(0,212,170,.7)); }
+    .train-body  { fill: #009B77; stroke: rgba(255,255,255,.15); stroke-width: 1; transition: fill .2s; }
+    .train-body.stopped  { fill: #00d4aa; filter: drop-shadow(0 0 5px rgba(0,212,170,.8)); }
+    .train-body.selected { stroke: #fff; stroke-width: 2; filter: drop-shadow(0 0 6px rgba(255,255,255,.6)); }
     .train-label { font-size: 7px; fill: #fff; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 
     #tooltip {
       position: fixed; background: #122033; border: 1px solid #1e3a5f;
-      border-radius: 8px; padding: 8px 12px; font-size: .78rem; color: #c5d5e5;
+      border-radius: 8px; padding: 7px 11px; font-size: .75rem; color: #c5d5e5;
       pointer-events: none; display: none; white-space: nowrap; z-index: 200;
     }
-    #tooltip b { color: #fff; }
-    #tooltip .tt-row { color: #7a9bbf; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -142,25 +184,16 @@
 </header>
 
 <div class="map-wrap">
-  <!-- preserveAspectRatio="none" fills the container exactly; viewBox 1600:820≈16:9 -->
   <svg id="metro-map" viewBox="0 0 1600 820" preserveAspectRatio="none">
     <rect width="1600" height="820" fill="#0d1b2a"/>
-
-    <!-- subtle grid lines -->
     <g opacity="0.03" stroke="#fff" stroke-width="1">
-      <line x1="0" y1="164" x2="1600" y2="164"/>
-      <line x1="0" y1="328" x2="1600" y2="328"/>
-      <line x1="0" y1="492" x2="1600" y2="492"/>
-      <line x1="0" y1="656" x2="1600" y2="656"/>
-      <line x1="200" y1="0" x2="200" y2="820"/>
-      <line x1="400" y1="0" x2="400" y2="820"/>
-      <line x1="600" y1="0" x2="600" y2="820"/>
-      <line x1="800" y1="0" x2="800" y2="820"/>
-      <line x1="1000" y1="0" x2="1000" y2="820"/>
-      <line x1="1200" y1="0" x2="1200" y2="820"/>
+      <line x1="0" y1="164" x2="1600" y2="164"/><line x1="0" y1="328" x2="1600" y2="328"/>
+      <line x1="0" y1="492" x2="1600" y2="492"/><line x1="0" y1="656" x2="1600" y2="656"/>
+      <line x1="200" y1="0" x2="200" y2="820"/><line x1="400" y1="0" x2="400" y2="820"/>
+      <line x1="600" y1="0" x2="600" y2="820"/><line x1="800" y1="0" x2="800" y2="820"/>
+      <line x1="1000" y1="0" x2="1000" y2="820"/><line x1="1200" y1="0" x2="1200" y2="820"/>
       <line x1="1400" y1="0" x2="1400" y2="820"/>
     </g>
-
     <g id="lines"></g>
     <g id="station-dots"></g>
     <g id="station-labels"></g>
@@ -168,24 +201,45 @@
   </svg>
 
   <div id="banner"></div>
+
+  <!-- Train detail panel -->
+  <div id="train-panel">
+    <div class="panel-head">
+      <div class="panel-icon">M</div>
+      <div class="panel-head-text">
+        <h2 id="panel-title">Train</h2>
+        <p id="panel-route"></p>
+      </div>
+      <button class="panel-close" id="panel-close-btn">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-row"><span class="panel-key">Status</span><span class="panel-value" id="panel-status"></span></div>
+      <div class="panel-row"><span class="panel-key">Speed</span><span class="panel-value" id="panel-speed"></span></div>
+      <div class="panel-row"><span class="panel-key">Direction</span><span class="panel-value" id="panel-bearing"></span></div>
+      <div class="panel-row"><span class="panel-key">Stop sequence</span><span class="panel-value" id="panel-stop"></span></div>
+      <div class="panel-row"><span class="panel-key">Route</span><span class="panel-value" id="panel-routeid"></span></div>
+      <div class="panel-row"><span class="panel-key">Trip</span><span class="panel-value" id="panel-trip"></span></div>
+      <div class="panel-row"><span class="panel-key">Position</span><span class="panel-value" id="panel-pos"></span></div>
+    </div>
+  </div>
+
   <div id="countdown"></div>
 
   <div class="legend">
     <div class="legend-row"><div class="legend-line"></div><span>Sydney Metro</span></div>
     <div class="legend-row" style="margin-top:4px"><div class="legend-dot"></div><span>Station</span></div>
     <div class="legend-row"><div class="legend-dot ix"></div><span>Interchange</span></div>
-    <div class="legend-row"><div class="legend-train"></div><span>Live train</span></div>
+    <div class="legend-row"><div class="legend-train"></div><span>Live train (click for details)</span></div>
   </div>
 </div>
 
 <div id="tooltip"></div>
 
 <script>
-// ── Map projection ──────────────────────────────────────────────────────────
-// Tight bounds that centre the metro network and use the full canvas.
-// Tallawong=150.910W, Chatswood/Martin Place=151.210E, Rouse Hill=-33.685N, Wiley Park=-33.928S
-const BOUNDS = { minLat:-33.945, maxLat:-33.660, minLon:150.885, maxLon:151.240 };
-const VW=1600, VH=820, MX=80, MY=60; // left/right and top/bottom margins
+// ── Projection ────────────────────────────────────────────────────────────────
+// Bounds fitted to Tallawong → Sydenham (no Bankstown)
+const BOUNDS = { minLat:-33.935, maxLat:-33.660, minLon:150.885, maxLon:151.240 };
+const VW=1600, VH=820, MX=80, MY=55;
 
 function project(lat, lon) {
   const x = (lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon) * (VW - MX*2) + MX;
@@ -193,22 +247,21 @@ function project(lat, lon) {
   return [x, y];
 }
 
-// ── Station data ────────────────────────────────────────────────────────────
+// ── Station data (Tallawong → Sydenham only) ──────────────────────────────────
 const STATIONS = [
-  // Northwest
   {id:'tallawong',        name:'Tallawong',            lat:-33.689, lon:150.910, ix:false},
   {id:'rouse-hill',       name:'Rouse Hill',           lat:-33.685, lon:150.918, ix:false},
   {id:'kellyville',       name:'Kellyville',           lat:-33.700, lon:150.937, ix:false},
   {id:'norwest',          name:'Norwest',              lat:-33.715, lon:150.954, ix:false},
   {id:'hills-showground', name:'Hills Showground',     lat:-33.729, lon:150.972, ix:false},
-  {id:'bella-vista',      name:'Bella Vista',          lat:-33.741, lon:150.977, ix:false},
+  {id:'castle-hill',      name:'Castle Hill',          lat:-33.730, lon:151.004, ix:false},
+  {id:'bella-vista',      name:'Bella Vista',          lat:-33.741, lon:151.007, ix:false},
   {id:'cherrybrook',      name:'Cherrybrook',          lat:-33.751, lon:151.011, ix:false},
   {id:'epping',           name:'Epping',               lat:-33.772, lon:151.082, ix:true},
   {id:'macquarie-uni',    name:'Macquarie University', lat:-33.774, lon:151.117, ix:false},
   {id:'macquarie-park',   name:'Macquarie Park',       lat:-33.778, lon:151.123, ix:false},
   {id:'north-ryde',       name:'North Ryde',           lat:-33.800, lon:151.133, ix:false},
   {id:'chatswood',        name:'Chatswood',            lat:-33.797, lon:151.183, ix:true},
-  // City & Southwest
   {id:'crows-nest',       name:'Crows Nest',           lat:-33.827, lon:151.207, ix:false},
   {id:'victoria-cross',   name:'Victoria Cross',       lat:-33.839, lon:151.210, ix:false},
   {id:'barangaroo',       name:'Barangaroo',           lat:-33.860, lon:151.200, ix:false},
@@ -216,39 +269,24 @@ const STATIONS = [
   {id:'gadigal',          name:'Gadigal',              lat:-33.876, lon:151.207, ix:false},
   {id:'waterloo',         name:'Waterloo',             lat:-33.897, lon:151.203, ix:false},
   {id:'sydenham',         name:'Sydenham',             lat:-33.918, lon:151.170, ix:true},
-  // Bankstown
-  {id:'marrickville',     name:'Marrickville',         lat:-33.910, lon:151.161, ix:false},
-  {id:'dulwich-hill',     name:'Dulwich Hill',         lat:-33.913, lon:151.134, ix:false},
-  {id:'hurlstone-park',   name:'Hurlstone Park',       lat:-33.916, lon:151.120, ix:false},
-  {id:'canterbury',       name:'Canterbury',           lat:-33.916, lon:151.112, ix:false},
-  {id:'campsie',          name:'Campsie',              lat:-33.909, lon:151.103, ix:false},
-  {id:'belmore',          name:'Belmore',              lat:-33.918, lon:151.092, ix:false},
-  {id:'lakemba',          name:'Lakemba',              lat:-33.920, lon:151.073, ix:false},
-  {id:'wiley-park',       name:'Wiley Park',           lat:-33.928, lon:151.070, ix:false},
-  {id:'punchbowl',        name:'Punchbowl',            lat:-33.927, lon:151.053, ix:false},
-  {id:'bankstown',        name:'Bankstown',            lat:-33.917, lon:151.034, ix:true},
 ];
 
 const LINES = [
-  { color:'#009B77', w:6, stations:[
-    'tallawong','rouse-hill','kellyville','norwest','hills-showground',
-    'bella-vista','cherrybrook','epping','macquarie-uni','macquarie-park',
-    'north-ryde','chatswood']},
-  { color:'#009B77', w:6, stations:[
-    'chatswood','crows-nest','victoria-cross','barangaroo',
-    'martin-place','gadigal','waterloo','sydenham']},
-  { color:'#009B77', w:6, stations:[
-    'sydenham','marrickville','dulwich-hill','hurlstone-park',
-    'canterbury','campsie','belmore','lakemba','wiley-park','punchbowl','bankstown']},
+  { w:6, stations:['tallawong','rouse-hill','kellyville','norwest','hills-showground',
+      'castle-hill','bella-vista','cherrybrook','epping','macquarie-uni',
+      'macquarie-park','north-ryde','chatswood'] },
+  { w:6, stations:['chatswood','crows-nest','victoria-cross','barangaroo',
+      'martin-place','gadigal','waterloo','sydenham'] },
 ];
 
-// [dx, dy, textAnchor]  — tuned for the 1600×820 canvas with these bounds
+// Label offsets [dx, dy, textAnchor] – tuned for 1600×820 canvas
 const LBL = {
   'tallawong':        [  0, -13, 'middle'],
   'rouse-hill':       [  0, -13, 'middle'],
   'kellyville':       [  0, -13, 'middle'],
   'norwest':          [  0, -13, 'middle'],
   'hills-showground': [  0,  17, 'middle'],
+  'castle-hill':      [  0, -13, 'middle'],
   'bella-vista':      [  0,  17, 'middle'],
   'cherrybrook':      [  0,  17, 'middle'],
   'epping':           [  0, -13, 'middle'],
@@ -262,118 +300,169 @@ const LBL = {
   'martin-place':     [ 12,   4, 'start'],
   'gadigal':          [-12,   4, 'end'],
   'waterloo':         [-12,   4, 'end'],
-  'sydenham':         [ 12,  -8, 'start'],
-  'marrickville':     [  0, -13, 'middle'],
-  'dulwich-hill':     [  0,  17, 'middle'],
-  'hurlstone-park':   [  0, -13, 'middle'],
-  'canterbury':       [  0,  17, 'middle'],
-  'campsie':          [  0, -13, 'middle'],
-  'belmore':          [  0,  17, 'middle'],
-  'lakemba':          [  0, -13, 'middle'],
-  'wiley-park':       [  0,  17, 'middle'],
-  'punchbowl':        [  0, -13, 'middle'],
-  'bankstown':        [  0,  17, 'middle'],
+  'sydenham':         [-12,   4, 'end'],
 };
 
-// ── Build SVG ───────────────────────────────────────────────────────────────
-const NS = 'http://www.w3.org/2000/svg';
-const linesG  = document.getElementById('lines');
-const dotsG   = document.getElementById('station-dots');
-const labelsG = document.getElementById('station-labels');
-const trainsG = document.getElementById('trains');
-const stMap   = Object.fromEntries(STATIONS.map(s => [s.id, s]));
+// ── Build static SVG ──────────────────────────────────────────────────────────
+const NS     = 'http://www.w3.org/2000/svg';
+const linesG = document.getElementById('lines');
+const dotsG  = document.getElementById('station-dots');
+const lblsG  = document.getElementById('station-labels');
+const trains = document.getElementById('trains');
+const stMap  = Object.fromEntries(STATIONS.map(s => [s.id, s]));
 
 STATIONS.forEach(s => { [s.x, s.y] = project(s.lat, s.lon); });
 
-// Draw lines (shadow + coloured stroke)
 LINES.forEach(line => {
   const pts = line.stations.map(id => `${stMap[id].x.toFixed(1)},${stMap[id].y.toFixed(1)}`).join(' ');
-  const mk = (attrs) => { const el = document.createElementNS(NS,'polyline'); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); linesG.appendChild(el); };
-  mk({points:pts, fill:'none', stroke:'rgba(0,155,119,.2)', 'stroke-width':line.w+6, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
-  mk({points:pts, fill:'none', stroke:line.color, 'stroke-width':line.w, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+  const mk  = (a) => { const el = document.createElementNS(NS,'polyline'); Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v)); linesG.appendChild(el); };
+  mk({points:pts, fill:'none', stroke:'rgba(0,155,119,.18)', 'stroke-width': line.w+8, 'stroke-linecap':'round','stroke-linejoin':'round'});
+  mk({points:pts, fill:'none', stroke:'#009B77', 'stroke-width': line.w, 'stroke-linecap':'round','stroke-linejoin':'round'});
 });
 
-// Draw station dots
+const tipEl = document.getElementById('tooltip');
+function showTip(e, html) { tipEl.innerHTML=html; tipEl.style.display='block'; moveTip(e); }
+function hideTip()        { tipEl.style.display='none'; }
+function moveTip(e)       { tipEl.style.left=(e.clientX+14)+'px'; tipEl.style.top=(e.clientY-10)+'px'; }
+document.addEventListener('mousemove', e => { if(tipEl.style.display==='block') moveTip(e); });
+
 STATIONS.forEach(s => {
   const r = s.ix ? 8 : 5;
-  const dot = document.createElementNS(NS, 'circle');
-  dot.setAttribute('cx', s.x); dot.setAttribute('cy', s.y); dot.setAttribute('r', r);
-  dot.setAttribute('class', 'station-dot' + (s.ix ? ' ix' : ''));
-  dot.addEventListener('mouseenter', e => showTip(e, `<b>${s.name}</b><div class="tt-row">${s.ix ? 'Interchange station' : 'Metro station'}</div>`));
+  const dot = document.createElementNS(NS,'circle');
+  dot.setAttribute('cx',s.x); dot.setAttribute('cy',s.y); dot.setAttribute('r',r);
+  dot.setAttribute('class','station-dot'+(s.ix?' ix':''));
+  dot.addEventListener('mouseenter', e => showTip(e, `<b>${s.name}</b>`));
   dot.addEventListener('mouseleave', hideTip);
   dotsG.appendChild(dot);
 
-  const [dx, dy, anchor] = LBL[s.id] || [10, 4, 'start'];
-  const txt = document.createElementNS(NS, 'text');
-  txt.setAttribute('x', s.x + dx); txt.setAttribute('y', s.y + dy);
-  txt.setAttribute('class', 'station-label' + (s.ix ? ' ix' : ''));
-  txt.setAttribute('text-anchor', anchor);
-  txt.textContent = s.name;
-  labelsG.appendChild(txt);
+  const [dx,dy,anchor] = LBL[s.id]||[10,4,'start'];
+  const t = document.createElementNS(NS,'text');
+  t.setAttribute('x',s.x+dx); t.setAttribute('y',s.y+dy);
+  t.setAttribute('class','station-label'+(s.ix?' ix':''));
+  t.setAttribute('text-anchor',anchor);
+  t.textContent = s.name;
+  lblsG.appendChild(t);
 });
 
-// ── Tooltip ──────────────────────────────────────────────────────────────────
-const tipEl = document.getElementById('tooltip');
-function showTip(e, html) { tipEl.innerHTML = html; tipEl.style.display = 'block'; moveTip(e); }
-function hideTip()        { tipEl.style.display = 'none'; }
-function moveTip(e)       { tipEl.style.left = (e.clientX+14)+'px'; tipEl.style.top = (e.clientY-10)+'px'; }
-document.addEventListener('mousemove', e => { if (tipEl.style.display === 'block') moveTip(e); });
+// ── Train detail panel ────────────────────────────────────────────────────────
+const panel     = document.getElementById('train-panel');
+const panelBtn  = document.getElementById('panel-close-btn');
+let   selectedId = null;
 
-// ── Trains ───────────────────────────────────────────────────────────────────
-const trainEls = {};
+function bearingToDir(b) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(b/45) % 8];
+}
+
+function statusBadge(raw) {
+  const map = { IN_TRANSIT_TO:'transit', STOPPED_AT:'stopped', INCOMING_AT:'incoming' };
+  const label = { IN_TRANSIT_TO:'In transit', STOPPED_AT:'Stopped at station', INCOMING_AT:'Approaching' };
+  const cls = map[raw] || 'transit';
+  return `<span class="status-badge ${cls}">${label[raw] || raw}</span>`;
+}
+
+function fillPanel(v) {
+  document.getElementById('panel-title').textContent  = 'Train ' + (v.vehicleId || '—');
+  document.getElementById('panel-route').textContent  = v.routeId || 'Sydney Metro';
+  document.getElementById('panel-status').innerHTML   = statusBadge(v.vehicleStatus);
+  document.getElementById('panel-speed').textContent  = v.speed ? Math.round(v.speed*3.6)+' km/h' : '—';
+  document.getElementById('panel-bearing').textContent= v.bearing ? bearingToDir(v.bearing)+' ('+Math.round(v.bearing)+'°)' : '—';
+  document.getElementById('panel-stop').textContent   = v.stopSequence || '—';
+  document.getElementById('panel-routeid').textContent= v.routeId || '—';
+  document.getElementById('panel-trip').textContent   = v.tripId || '—';
+  document.getElementById('panel-pos').textContent    = v.latitude.toFixed(4)+', '+v.longitude.toFixed(4);
+}
+
+function openPanel(v) {
+  selectedId = v.vehicleId;
+  fillPanel(v);
+  panel.classList.add('open');
+  highlightSelected();
+}
+
+function closePanel() {
+  selectedId = null;
+  panel.classList.remove('open');
+  highlightSelected();
+}
+
+function highlightSelected() {
+  document.querySelectorAll('.train-body').forEach(el => el.classList.remove('selected'));
+  if (selectedId && trainEls[selectedId]) {
+    trainEls[selectedId].querySelector('.train-body').classList.add('selected');
+  }
+}
+
+panelBtn.addEventListener('click', closePanel);
+document.getElementById('metro-map').addEventListener('click', e => {
+  if (!e.target.closest('.train-group')) closePanel();
+});
+
+// ── Train rendering ───────────────────────────────────────────────────────────
+const trainEls   = {};
+const vehicleMap = {};
 
 function updateTrains(vehicles) {
   const seen = new Set();
-  vehicles.forEach(v => {
-    const [x, y] = project(v.latitude, v.longitude);
-    const stopped = v.vehicleStatus === 'STOPPED_AT';
-    const label   = (v.vehicleId || '').slice(-3) || 'M';
-    seen.add(v.vehicleId);
 
-    let g = trainEls[v.vehicleId];
-    if (!g) {
-      g = document.createElementNS(NS, 'g');
-      g.setAttribute('class', 'train-group');
+  vehicles.forEach(v => {
+    vehicleMap[v.vehicleId] = v;
+    seen.add(v.vehicleId);
+    const [x,y] = project(v.latitude, v.longitude);
+    const stopped = v.vehicleStatus === 'STOPPED_AT';
+    const lbl = (v.vehicleId || '').slice(-3) || 'M';
+
+    if (!trainEls[v.vehicleId]) {
+      const g = document.createElementNS(NS,'g');
+      g.setAttribute('class','train-group');
       g.style.transition = 'transform 3s cubic-bezier(.25,.8,.25,1)';
 
-      const rect = document.createElementNS(NS, 'rect');
+      const rect = document.createElementNS(NS,'rect');
       rect.setAttribute('x',-13); rect.setAttribute('y',-8);
-      rect.setAttribute('width',26); rect.setAttribute('height',16);
-      rect.setAttribute('rx',3); rect.setAttribute('class','train-body');
+      rect.setAttribute('width',26); rect.setAttribute('height',16); rect.setAttribute('rx',3);
+      rect.setAttribute('class','train-body');
       g.appendChild(rect);
 
-      const txt = document.createElementNS(NS, 'text');
+      const txt = document.createElementNS(NS,'text');
       txt.setAttribute('class','train-label'); txt.setAttribute('x',0); txt.setAttribute('y',1);
-      txt.textContent = label;
+      txt.textContent = lbl;
       g.appendChild(txt);
 
-      g.addEventListener('mouseenter', e => {
-        const kmh = v.speed ? Math.round(v.speed*3.6)+' km/h' : '—';
-        showTip(e,`<b>Train ${esc(v.vehicleId)}</b><div class="tt-row">Trip: ${esc(v.tripId||'—')}</div><div class="tt-row">Speed: ${kmh}</div><div class="tt-row">Status: ${esc(v.vehicleStatus.replace(/_/g,' ').toLowerCase())}</div>`);
-      });
+      g.addEventListener('click', e => { e.stopPropagation(); openPanel(vehicleMap[v.vehicleId]); });
+      g.addEventListener('mouseenter', e => showTip(e, `<b>Train ${esc(v.vehicleId)}</b> — click for details`));
       g.addEventListener('mouseleave', hideTip);
-      trainsG.appendChild(g);
+
+      trains.appendChild(g);
       trainEls[v.vehicleId] = g;
     }
 
+    const g = trainEls[v.vehicleId];
     g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
-    g.querySelector('.train-body').setAttribute('class', 'train-body' + (stopped ? ' stopped' : ''));
+    const body = g.querySelector('.train-body');
+    body.setAttribute('class', 'train-body' + (stopped?' stopped':'') + (v.vehicleId===selectedId?' selected':''));
+
+    if (v.vehicleId === selectedId) fillPanel(v);
   });
 
-  for (const [id, el] of Object.entries(trainEls)) {
-    if (!seen.has(id)) { el.remove(); delete trainEls[id]; }
+  // Remove trains that left the feed
+  for (const [id,el] of Object.entries(trainEls)) {
+    if (!seen.has(id)) {
+      el.remove(); delete trainEls[id]; delete vehicleMap[id];
+      if (id === selectedId) closePanel();
+    }
   }
+  highlightSelected();
 }
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── Status UI ─────────────────────────────────────────────────────────────────
-const dotEl   = document.getElementById('status-dot');
-const txtEl   = document.getElementById('status-text');
-const cntEl   = document.getElementById('train-count');
-const timeEl  = document.getElementById('update-time');
-const bannerEl= document.getElementById('banner');
-const cdEl    = document.getElementById('countdown');
+// ── Status bar ────────────────────────────────────────────────────────────────
+const dotEl    = document.getElementById('status-dot');
+const txtEl    = document.getElementById('status-text');
+const cntEl    = document.getElementById('train-count');
+const timeEl   = document.getElementById('update-time');
+const bannerEl = document.getElementById('banner');
+const cdEl     = document.getElementById('countdown');
 
 function setStatus(status, vehicles, lastUpdated) {
   dotEl.className = 'status-dot';
@@ -382,20 +471,16 @@ function setStatus(status, vehicles, lastUpdated) {
     dotEl.classList.add('ok'); txtEl.textContent = 'Live';
     cntEl.textContent = `${vehicles.length} train${vehicles.length!==1?'s':''} active`;
   } else if (status === 'no_api_key') {
-    dotEl.classList.add('warn'); txtEl.textContent = 'No API key';
-    cntEl.textContent = '';
+    dotEl.classList.add('warn'); txtEl.textContent = 'No API key'; cntEl.textContent = '';
     bannerEl.innerHTML =
       '<b>Set your Transport NSW API key to see live trains.</b><br>' +
       'Get a free key at <a href="https://opendata.transport.nsw.gov.au" target="_blank">opendata.transport.nsw.gov.au</a>' +
       ', then set <code>TRANSPORT_NSW_API_KEY</code> on Render.';
     bannerEl.style.display = 'block';
   } else {
-    dotEl.classList.add('error'); txtEl.textContent = 'Error';
-    cntEl.textContent = '';
+    dotEl.classList.add('error'); txtEl.textContent = 'Error'; cntEl.textContent = '';
   }
-  if (lastUpdated) {
-    timeEl.textContent = 'Updated ' + new Date(lastUpdated).toLocaleTimeString();
-  }
+  if (lastUpdated) timeEl.textContent = 'Updated ' + new Date(lastUpdated).toLocaleTimeString();
 }
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
