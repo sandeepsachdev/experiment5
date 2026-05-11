@@ -576,7 +576,7 @@ function switchView(view) {
   document.getElementById('btn-map').classList.toggle('active',   view === 'map');
   document.getElementById('btn-table').classList.toggle('active', view === 'table');
   mapWrap.style.display   = view === 'map'   ? '' : 'none';
-  tableWrap.style.display = view === 'table' ? '' : 'none';
+  tableWrap.style.display = view === 'table' ? 'block' : 'none';
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
