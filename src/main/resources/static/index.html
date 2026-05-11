@@ -202,6 +202,19 @@
 
     /* ── Mobile ────────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
+      /* Header: two rows — logo+status on row 1, full-width toggle on row 2 */
+      header {
+        height: auto;
+        padding: 10px 16px 8px;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        align-items: center;
+      }
+      .logo-text p { display: none; }
+      #train-count, #update-time { display: none; }
+      .view-toggle { flex: 0 0 100%; order: 10; border-radius: 8px; }
+      .view-btn    { flex: 1; text-align: center; padding: 8px 0; }
+
       /* Make the map scrollable; give SVG a fixed size matching the 1600:820
          aspect ratio so all stations are reachable by panning */
       .map-wrap { overflow: auto; -webkit-overflow-scrolling: touch; }
