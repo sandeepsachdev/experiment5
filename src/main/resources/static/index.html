@@ -162,6 +162,29 @@
       border-radius: 8px; padding: 7px 11px; font-size: .75rem; color: #c5d5e5;
       pointer-events: none; display: none; white-space: nowrap; z-index: 200;
     }
+
+    /* ── Mobile ────────────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      /* Make the map scrollable; give SVG a fixed size matching the 1600:820
+         aspect ratio so all stations are reachable by panning */
+      .map-wrap { overflow: auto; -webkit-overflow-scrolling: touch; }
+      #metro-map { width: 1100px; height: 564px; }
+
+      /* Train panel becomes a bottom sheet instead of a right-side drawer */
+      #train-panel {
+        position: fixed;
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%; max-height: 60vh;
+        border-radius: 16px 16px 0 0;
+        transform: translateY(110%); opacity: 1;
+        overflow-y: auto;
+      }
+      #train-panel.open { transform: translateY(0); opacity: 1; }
+
+      /* Pin legend and countdown to the viewport so they don't scroll away */
+      .legend   { position: fixed; bottom: 12px; left: 16px;  z-index: 40; }
+      #countdown { position: fixed; bottom: 12px; right: 16px; z-index: 40; }
+    }
   </style>
 </head>
 <body>
