@@ -498,24 +498,73 @@ document.getElementById('metro-map').addEventListener('click', e => {
   if (!e.target.closest('.train-group')) closePanel();
 });
 
+// ── Dead-reckoning animation ──────────────────────────────────────────────────
+// Each train is animated every frame via rAF. Between GPS refreshes we
+// extrapolate using speed + bearing. When new GPS data arrives we smoothly
+// blend from the current displayed position to the real fix over CORR_SECS.
+
+const CORR_SECS = 2.5;
+const trainState = {}; // { lat, lon, speed, bearing, fixSec, corrStart, corrFrom, corrTo }
+
+function smoothStep(t) { return t * t * (3 - 2 * t); }
+
+function deadReckon(lat, lon, speedMs, bearingDeg, elapsedSec) {
+  if (!speedMs || speedMs < 0.5 || elapsedSec <= 0) return { lat, lon };
+  const R  = 6_371_000;
+  const br = bearingDeg * Math.PI / 180;
+  const d  = speedMs * elapsedSec;
+  return {
+    lat: lat + (d * Math.cos(br)) / R * (180 / Math.PI),
+    lon: lon + (d * Math.sin(br)) / (R * Math.cos(lat * Math.PI / 180)) * (180 / Math.PI),
+  };
+}
+
+function displayPos(state) {
+  const nowSec = performance.now() / 1000;
+  if (state.corrStart !== null) {
+    const t = (nowSec - state.corrStart) / CORR_SECS;
+    if (t < 1) {
+      const e = smoothStep(t);
+      return {
+        lat: state.corrFrom.lat + (state.corrTo.lat - state.corrFrom.lat) * e,
+        lon: state.corrFrom.lon + (state.corrTo.lon - state.corrFrom.lon) * e,
+      };
+    }
+    state.corrStart = null;
+  }
+  return deadReckon(state.lat, state.lon, state.speed, state.bearing,
+                    nowSec - state.fixSec);
+}
+
+function animateDR() {
+  for (const [id, state] of Object.entries(trainState)) {
+    const g = trainEls[id];
+    if (!g) continue;
+    const pos    = displayPos(state);
+    const [x, y] = project(pos.lat, pos.lon);
+    g.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+  }
+  requestAnimationFrame(animateDR);
+}
+
 // ── Train rendering ───────────────────────────────────────────────────────────
 const trainEls   = {};
 const vehicleMap = {};
 
 function updateTrains(vehicles) {
-  const seen = new Set();
+  const seen   = new Set();
+  const nowSec = performance.now() / 1000;
 
   vehicles.forEach(v => {
     vehicleMap[v.vehicleId] = v;
     seen.add(v.vehicleId);
-    const [x,y] = project(v.latitude, v.longitude);
     const stopped = v.vehicleStatus === 'STOPPED_AT';
     const lbl = (v.vehicleId || '').slice(-3) || 'M';
 
     if (!trainEls[v.vehicleId]) {
+      // ── First time we see this train ──────────────────────────────────────
       const g = document.createElementNS(NS,'g');
       g.setAttribute('class','train-group');
-      g.style.transition = 'transform 3s cubic-bezier(.25,.8,.25,1)';
 
       const rect = document.createElementNS(NS,'rect');
       rect.setAttribute('x',-13); rect.setAttribute('y',-8);
@@ -534,20 +583,37 @@ function updateTrains(vehicles) {
 
       trains.appendChild(g);
       trainEls[v.vehicleId] = g;
+
+      // Place immediately — no correction on first appearance
+      trainState[v.vehicleId] = {
+        lat: v.latitude, lon: v.longitude,
+        speed: v.speed || 0, bearing: v.bearing || 0,
+        fixSec: nowSec,
+        corrStart: null, corrFrom: null, corrTo: null,
+      };
+    } else {
+      // ── GPS refresh for existing train ────────────────────────────────────
+      const currentPos = displayPos(trainState[v.vehicleId]);
+      trainState[v.vehicleId] = {
+        lat: v.latitude, lon: v.longitude,
+        speed: v.speed || 0, bearing: v.bearing || 0,
+        fixSec: nowSec,
+        corrStart: nowSec,
+        corrFrom: currentPos,
+        corrTo: { lat: v.latitude, lon: v.longitude },
+      };
     }
 
-    const g = trainEls[v.vehicleId];
-    g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
-    const body = g.querySelector('.train-body');
+    const body = trainEls[v.vehicleId].querySelector('.train-body');
     body.setAttribute('class', 'train-body' + (stopped?' stopped':'') + (v.vehicleId===selectedId?' selected':''));
-
     if (v.vehicleId === selectedId) fillPanel(v);
   });
 
   // Remove trains that left the feed
-  for (const [id,el] of Object.entries(trainEls)) {
+  for (const [id, el] of Object.entries(trainEls)) {
     if (!seen.has(id)) {
-      el.remove(); delete trainEls[id]; delete vehicleMap[id];
+      el.remove();
+      delete trainEls[id]; delete vehicleMap[id]; delete trainState[id];
       if (id === selectedId) closePanel();
     }
   }
@@ -694,6 +760,7 @@ setInterval(() => {
   else cdEl.textContent = `Refreshing in ${countdown}s`;
 }, 1000);
 
+requestAnimationFrame(animateDR);
 poll();
 </script>
 </body>
