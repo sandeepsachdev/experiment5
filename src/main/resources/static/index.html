@@ -271,7 +271,7 @@
         align-items: center;
       }
       .logo-text p { display: none; }
-      #train-count, #update-time { display: none; }
+      #update-time { display: none; }
       .view-toggle { flex: 0 0 100%; order: 10; border-radius: 8px; }
       .view-btn    { flex: 1; text-align: center; padding: 8px 0; }
 
@@ -384,14 +384,12 @@
     <thead><tr>
       <th data-col="vehicleId">Train</th>
       <th data-col="vehicleStatus">Status</th>
-      <th data-col="_nearestName">Nearest Station</th>
-      <th data-col="_nearestDist" class="sort-asc">Distance</th>
+      <th data-col="_nextName">Next Station</th>
+      <th data-col="_nextDist" class="sort-asc">Distance</th>
       <th data-col="speed">Speed</th>
       <th data-col="bearing">Direction</th>
-      <th data-col="routeId">Route</th>
       <th data-col="tripId">Trip</th>
       <th data-col="stopSequence">Stop #</th>
-      <th data-col="latitude">Position</th>
     </tr></thead>
     <tbody id="trains-tbody"></tbody>
   </table>
@@ -908,7 +906,7 @@ function fmtDist(km) {
 
 // ── Table ─────────────────────────────────────────────────────────────────────
 let lastVehicles = [];
-let sortCol = '_nearestDist';
+let sortCol = '_nextDist';
 let sortDir = 1; // 1 = asc (closest first)
 
 function updateTable(vehicles) {
@@ -923,39 +921,39 @@ function updateTable(vehicles) {
   }
   emptyEl.style.display = 'none';
 
-  // Enrich each vehicle with nearest-station data
+  // Enrich each vehicle with next-station data
   const enriched = vehicles.map(v => {
-    const near = nearestStation(v.latitude, v.longitude);
-    return { ...v, _nearestName: near.name, _nearestDist: near.distKm };
+    const nextName = nextStation(v.latitude, v.longitude, v.bearing, v.vehicleStatus);
+    const nextSt   = STATIONS.find(s => s.name === nextName);
+    const nextDist = nextSt ? haversineKm(v.latitude, v.longitude, nextSt.lat, nextSt.lon) : 0;
+    return { ...v, _nextName: nextName, _nextDist: nextDist };
   });
 
   const rows = [...enriched].sort((a, b) => {
     let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
-    if (sortCol === 'speed' || sortCol === '_nearestDist') { va = va || 0; vb = vb || 0; }
+    if (sortCol === 'speed' || sortCol === '_nextDist') { va = va || 0; vb = vb || 0; }
     return sortDir * (typeof va === 'string' ? va.localeCompare(vb) : va - vb);
   });
 
   tbody.innerHTML = rows.map(v => `<tr>
     <td><code>${esc(v.vehicleId)}</code></td>
     <td>${statusBadge(v.vehicleStatus)}</td>
-    <td>${esc(v._nearestName)}</td>
-    <td>${fmtDist(v._nearestDist)}</td>
+    <td>${esc(v._nextName)}</td>
+    <td>${fmtDist(v._nextDist)}</td>
     <td><span class="speed-val">${v.speed ? Math.round(v.speed * 3.6) : '—'}</span>${v.speed ? ' km/h' : ''}</td>
     <td>${v.bearing ? bearingToDir(v.bearing) + ' ' + Math.round(v.bearing) + '°' : '—'}</td>
-    <td>${esc(v.routeId) || '—'}</td>
     <td><small>${esc(v.tripId) || '—'}</small></td>
     <td>${v.stopSequence || '—'}</td>
-    <td><small>${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}</small></td>
   </tr>`).join('');
 }
 
 // Column sort
-const NUMERIC_COLS = new Set(['speed', '_nearestDist', 'stopSequence', 'latitude']);
+const NUMERIC_COLS = new Set(['speed', '_nextDist', 'stopSequence']);
 document.querySelectorAll('.trains-table th[data-col]').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.col;
-    // numeric cols default desc except distance (asc = closest first)
-    const defaultDir = col === '_nearestDist' ? 1 : (NUMERIC_COLS.has(col) ? -1 : 1);
+    // numeric cols default desc except distance (asc = nearest first)
+    const defaultDir = col === '_nextDist' ? 1 : (NUMERIC_COLS.has(col) ? -1 : 1);
     sortDir = (sortCol === col) ? -sortDir : defaultDir;
     sortCol = col;
     document.querySelectorAll('.trains-table th').forEach(h => h.className = '');
