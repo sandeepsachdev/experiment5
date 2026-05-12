@@ -612,53 +612,58 @@ document.getElementById('metro-map').addEventListener('click', e => {
 // blend from the current displayed position to the real fix over CORR_SECS.
 
 const CORR_SECS = 2.5;
-const trainState = {}; // { lat, lon, speed, bearing, fixSec, corrStart, corrFrom, corrTo }
+const trainState = {}; // { lat, lon, speed, bearing, progress, direction, fixSec, corrStart, corrFrom, corrTo }
 
 function smoothStep(t) { return t * t * (3 - 2 * t); }
 
-function deadReckon(lat, lon, speedMs, bearingDeg, elapsedSec) {
-  if (!speedMs || speedMs < 0.5 || elapsedSec <= 0) return { lat, lon };
-  const R  = 6_371_000;
-  const br = bearingDeg * Math.PI / 180;
-  const d  = speedMs * elapsedSec;
-  return {
-    lat: lat + (d * Math.cos(br)) / R * (180 / Math.PI),
-    lon: lon + (d * Math.sin(br)) / (R * Math.cos(lat * Math.PI / 180)) * (180 / Math.PI),
-  };
+// Maps route progress t ∈ [0,1] to SVG user-unit coordinates.
+function progressToXY(t) {
+  const dist = t * routeTotalKm;
+  for (let i = 0; i < ROUTE.length - 1; i++) {
+    if (dist <= routeCumKm[i + 1]) {
+      const frac = (dist - routeCumKm[i]) / (routeCumKm[i + 1] - routeCumKm[i]);
+      return [
+        ROUTE[i].x + frac * (ROUTE[i + 1].x - ROUTE[i].x),
+        ROUTE[i].y + frac * (ROUTE[i + 1].y - ROUTE[i].y),
+      ];
+    }
+  }
+  return [ROUTE[ROUTE.length - 1].x, ROUTE[ROUTE.length - 1].y];
 }
 
-function displayPos(state) {
+// Returns current route progress [0,1], blending toward corrTo during correction
+// or advancing along the route using speed × direction between GPS fixes.
+function displayProgress(state) {
   const nowSec = performance.now() / 1000;
   if (state.corrStart !== null) {
     const t = (nowSec - state.corrStart) / CORR_SECS;
     if (t < 1) {
       const e = smoothStep(t);
-      return {
-        lat: state.corrFrom.lat + (state.corrTo.lat - state.corrFrom.lat) * e,
-        lon: state.corrFrom.lon + (state.corrTo.lon - state.corrFrom.lon) * e,
-      };
+      return state.corrFrom.progress + (state.corrTo.progress - state.corrFrom.progress) * e;
     }
     state.corrStart = null;
   }
-  return deadReckon(state.lat, state.lon, state.speed, state.bearing,
-                    nowSec - state.fixSec);
+  if (!state.speed || state.speed < 0.5 || !state.direction) return state.progress;
+  const elapsed = nowSec - state.fixSec;
+  const distKm  = (state.speed * elapsed) / 1000;
+  return Math.max(0, Math.min(1, state.progress + (distKm / routeTotalKm) * state.direction));
 }
 
 function animateDR() {
   for (const [id, state] of Object.entries(trainState)) {
-    const pos = displayPos(state);
+    const prog = displayProgress(state);
 
-    // Map view
+    // Map view — SVG attribute transform (user units, not CSS px)
     const g = trainEls[id];
     if (g) {
-      const [x, y] = project(pos.lat, pos.lon);
-      g.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+      const [x, y] = progressToXY(prog);
+      g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
     }
 
     // Track view
     const dot = trackEls[id];
     if (dot) {
-      dot.style.left = (trainProgress(pos.lat, pos.lon) * 100).toFixed(2) + '%';
+      dot.style.left = (prog * 100).toFixed(2) + '%';
     }
   }
   requestAnimationFrame(animateDR);
@@ -702,22 +707,30 @@ function updateTrains(vehicles) {
       trainEls[v.vehicleId] = g;
 
       // Place immediately — no correction on first appearance
+      const prog0 = trainProgress(v.latitude, v.longitude);
+      const dir0  = v.bearing ? ((v.bearing > 45 && v.bearing <= 225) ? 1 : -1) : 0;
       trainState[v.vehicleId] = {
         lat: v.latitude, lon: v.longitude,
         speed: v.speed || 0, bearing: v.bearing || 0,
+        progress: prog0, direction: dir0,
         fixSec: nowSec,
         corrStart: null, corrFrom: null, corrTo: null,
       };
+      const [ix0, iy0] = progressToXY(prog0);
+      trainEls[v.vehicleId].setAttribute('transform', `translate(${ix0.toFixed(1)},${iy0.toFixed(1)})`);
     } else {
       // ── GPS refresh for existing train ────────────────────────────────────
-      const currentPos = displayPos(trainState[v.vehicleId]);
+      const currentProg = displayProgress(trainState[v.vehicleId]);
+      const newProg     = trainProgress(v.latitude, v.longitude);
+      const dir1        = v.bearing ? ((v.bearing > 45 && v.bearing <= 225) ? 1 : -1) : 0;
       trainState[v.vehicleId] = {
         lat: v.latitude, lon: v.longitude,
         speed: v.speed || 0, bearing: v.bearing || 0,
+        progress: newProg, direction: dir1,
         fixSec: nowSec,
         corrStart: nowSec,
-        corrFrom: currentPos,
-        corrTo: { lat: v.latitude, lon: v.longitude },
+        corrFrom: { progress: currentProg },
+        corrTo:   { progress: newProg },
       };
     }
 
