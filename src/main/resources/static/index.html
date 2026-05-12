@@ -820,17 +820,30 @@ function updateTrack(vehicles) {
     const stopped  = v.vehicleStatus === 'STOPPED_AT';
     const arrow    = stopped ? '■' : dirArrow(v.bearing);
     const speedTxt = v.speed ? Math.round(v.speed * 3.6) + ' km/h' : '—';
-    const pct      = (v._prog * 100).toFixed(2);
-    const next     = nextStation(v.latitude, v.longitude, v.bearing, v.vehicleStatus);
-    const nextLbl  = stopped ? `⊙ ${esc(next)}` : `→ ${esc(next)}`;
+    const dotPct   = (v._prog * 100).toFixed(2);
+    const nextName = nextStation(v.latitude, v.longitude, v.bearing, v.vehicleStatus);
+    const nextSt   = STATIONS.find(s => s.name === nextName);
+    const nextDist = nextSt ? haversineKm(v.latitude, v.longitude, nextSt.lat, nextSt.lon) : 0;
+    const toSyd    = v.bearing > 45 && v.bearing <= 225;
+    const nextIdx  = ROUTE.findIndex(s => s.name === nextName);
+    let segPct = 100;
+    if (!stopped && nextIdx >= 0 && nextSt) {
+      const prevIdx = toSyd ? nextIdx - 1 : nextIdx + 1;
+      if (prevIdx >= 0 && prevIdx < ROUTE.length) {
+        const segLen = haversineKm(ROUTE[prevIdx].lat, ROUTE[prevIdx].lon, nextSt.lat, nextSt.lon);
+        segPct = segLen > 0 ? Math.max(0, Math.min(100, Math.round((1 - nextDist / segLen) * 100))) : 100;
+      }
+    }
+    const nextLbl = stopped ? `⊙ ${esc(nextName)}` : `→ ${esc(nextName)}`;
+    const distLbl = stopped ? 'At station' : `${fmtDist(nextDist)} · ${segPct}%`;
     return `<div class="track-row">
       <div class="track-id-cell"><code>${esc(v.vehicleId)}</code></div>
       <div class="track-bar-wrap">
         <div class="track-line"></div>
         ${ticksHtml}
-        <div class="track-dot${stopped?' stopped':''}" id="tdot-${v.vehicleId}" style="left:${pct}%">${arrow}</div>
+        <div class="track-dot${stopped?' stopped':''}" id="tdot-${v.vehicleId}" style="left:${dotPct}%">${arrow}</div>
       </div>
-      <div class="track-info-cell">${statusBadge(v.vehicleStatus)}<br>${arrow} ${speedTxt}<span class="track-next">${nextLbl}</span></div>
+      <div class="track-info-cell">${statusBadge(v.vehicleStatus)}<br>${arrow} ${speedTxt}<span class="track-next">${nextLbl}</span><span class="track-next">${distLbl}</span></div>
     </div>`;
   }).join('');
 
