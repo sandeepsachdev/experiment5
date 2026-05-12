@@ -200,6 +200,65 @@
     .speed-val { font-size: .95rem; font-weight: 700; color: #e8edf2; }
     .tbl-empty { text-align: center; padding: 56px 24px; color: #2a4a6a; font-size: .9rem; }
 
+    /* ── Track view ───────────────────────────────────────────────────────── */
+    #track-wrap {
+      flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 0 20px 20px; display: none;
+    }
+    .track-header {
+      position: sticky; top: 0; z-index: 5;
+      background: #0d1b2a; border-bottom: 2px solid #1e3a5f;
+      display: flex; align-items: flex-end; padding: 8px 0 0; margin-bottom: 2px;
+    }
+    .track-id-spacer { width: 70px; flex-shrink: 0; margin-right: 10px; }
+    .track-station-bar {
+      flex: 1; position: relative; height: 66px; margin-right: 140px;
+    }
+    .track-tick {
+      position: absolute; bottom: 0; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: flex-start;
+    }
+    .track-tick-line {
+      width: 1px; height: 8px; background: #1e3a5f; align-self: center; flex-shrink: 0;
+    }
+    .track-tick.ix .track-tick-line { height: 14px; background: #009B77; }
+    .track-tick-label {
+      font-size: 9px; color: #3a5a7a; white-space: nowrap;
+      transform: rotate(-45deg) translateX(4px); transform-origin: bottom left;
+    }
+    .track-tick.ix .track-tick-label { color: #6a9abf; }
+
+    .track-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid #141f2e;
+    }
+    .track-id-cell { width: 70px; flex-shrink: 0; text-align: right; }
+    .track-id-cell code {
+      background: #1e3a5f; padding: 2px 6px; border-radius: 4px;
+      font-size: .72rem; color: #e8edf2; font-family: monospace;
+    }
+    .track-bar-wrap { flex: 1; position: relative; height: 20px; }
+    .track-line {
+      position: absolute; top: 50%; left: 0; right: 0; height: 3px;
+      background: #162840; border-radius: 2px; transform: translateY(-50%);
+    }
+    .track-seg-tick {
+      position: absolute; top: 50%; width: 1px; height: 9px;
+      background: #1e3a5f; transform: translate(-50%,-50%); pointer-events: none;
+    }
+    .track-seg-tick.ix { height: 13px; background: #1a4a3a; }
+    .track-dot {
+      position: absolute; top: 50%; transform: translate(-50%,-50%);
+      width: 20px; height: 14px; border-radius: 3px;
+      background: #009B77; display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: #fff; box-shadow: 0 0 7px rgba(0,155,119,.6);
+      z-index: 2; pointer-events: none;
+    }
+    .track-dot.stopped { background: #00d4aa; box-shadow: 0 0 7px rgba(0,212,170,.6); }
+    .track-info-cell {
+      width: 130px; flex-shrink: 0; font-size: .7rem; color: #7a9bbf; line-height: 1.6;
+    }
+
     /* ── Mobile ────────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
       /* Header: two rows — logo+status on row 1, full-width toggle on row 2 */
@@ -253,6 +312,7 @@
   <div class="view-toggle">
     <button class="view-btn active" id="btn-map"   onclick="switchView('map')">Map</button>
     <button class="view-btn"        id="btn-table" onclick="switchView('table')">Table</button>
+    <button class="view-btn"        id="btn-track" onclick="switchView('track')">Track</button>
   </div>
   <div class="status-pill">
     <div class="status-dot" id="status-dot"></div>
@@ -308,6 +368,14 @@
     <div class="legend-row"><div class="legend-dot ix"></div><span>Interchange</span></div>
     <div class="legend-row"><div class="legend-train"></div><span>Live train (click for details)</span></div>
   </div>
+</div>
+
+<div id="track-wrap">
+  <div class="track-header">
+    <div class="track-id-spacer"></div>
+    <div class="track-station-bar" id="track-station-bar"></div>
+  </div>
+  <div id="track-rows"></div>
 </div>
 
 <div id="table-wrap">
@@ -412,6 +480,45 @@ const trains = document.getElementById('trains');
 const stMap  = Object.fromEntries(STATIONS.map(s => [s.id, s]));
 
 STATIONS.forEach(s => { [s.x, s.y] = project(s.lat, s.lon); });
+
+// ── Route geometry: Tallawong → Sydenham full polyline ────────────────────────
+const ROUTE = [
+  ...LINES[0].stations,
+  ...LINES[1].stations.slice(1), // skip Chatswood (shared junction)
+].map(id => stMap[id]);
+
+const routeCumKm = [0];
+let routeTotalKm = 0;
+for (let i = 0; i < ROUTE.length - 1; i++) {
+  // Cartesian approximation accurate enough for proportional positioning
+  const cf = Math.cos(ROUTE[i].lat * Math.PI / 180);
+  const dx = (ROUTE[i+1].lon - ROUTE[i].lon) * cf;
+  const dy = ROUTE[i+1].lat - ROUTE[i].lat;
+  const d  = Math.sqrt(dx*dx + dy*dy) * 111; // ≈ km
+  routeTotalKm += d;
+  routeCumKm.push(routeTotalKm);
+}
+
+// Returns t ∈ [0,1]: 0 = Tallawong, 1 = Sydenham
+// Projects (lat,lon) onto the route polyline and returns fractional progress.
+function trainProgress(lat, lon) {
+  const cf = Math.cos(lat * Math.PI / 180);
+  let best = 0, bestD2 = Infinity;
+  for (let i = 0; i < ROUTE.length - 1; i++) {
+    const a = ROUTE[i], b = ROUTE[i+1];
+    const ax = a.lon*cf, ay = a.lat, bx = b.lon*cf, by = b.lat;
+    const px = lon*cf,   py = lat;
+    const abx = bx-ax, aby = by-ay, ab2 = abx*abx + aby*aby;
+    const t   = ab2 > 0 ? Math.max(0, Math.min(1, ((px-ax)*abx + (py-ay)*aby) / ab2)) : 0;
+    const dx  = px-(ax+t*abx), dy = py-(ay+t*aby);
+    const d2  = dx*dx + dy*dy;
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best   = (routeCumKm[i] + t*(routeCumKm[i+1]-routeCumKm[i])) / routeTotalKm;
+    }
+  }
+  return Math.max(0, Math.min(1, best));
+}
 
 LINES.forEach(line => {
   const pts = line.stations.map(id => `${stMap[id].x.toFixed(1)},${stMap[id].y.toFixed(1)}`).join(' ');
@@ -538,11 +645,20 @@ function displayPos(state) {
 
 function animateDR() {
   for (const [id, state] of Object.entries(trainState)) {
+    const pos = displayPos(state);
+
+    // Map view
     const g = trainEls[id];
-    if (!g) continue;
-    const pos    = displayPos(state);
-    const [x, y] = project(pos.lat, pos.lon);
-    g.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+    if (g) {
+      const [x, y] = project(pos.lat, pos.lon);
+      g.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px)`;
+    }
+
+    // Track view
+    const dot = trackEls[id];
+    if (dot) {
+      dot.style.left = (trainProgress(pos.lat, pos.lon) * 100).toFixed(2) + '%';
+    }
   }
   requestAnimationFrame(animateDR);
 }
@@ -622,6 +738,71 @@ function updateTrains(vehicles) {
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── Track view ────────────────────────────────────────────────────────────────
+const trackEls = {}; // { vehicleId: dotElement }
+
+function buildTrackHeader() {
+  const bar = document.getElementById('track-station-bar');
+  ROUTE.forEach((s, i) => {
+    const pct = (routeCumKm[i] / routeTotalKm * 100).toFixed(2);
+    const div = document.createElement('div');
+    div.className = 'track-tick' + (s.ix ? ' ix' : '');
+    div.style.left = pct + '%';
+    div.title = s.name;
+    div.innerHTML = `<div class="track-tick-line"></div><div class="track-tick-label">${s.name}</div>`;
+    bar.appendChild(div);
+  });
+}
+
+function dirArrow(bearing) {
+  if (!bearing) return '';
+  return (bearing > 45 && bearing <= 225) ? '▶' : '◀';
+}
+
+function updateTrack(vehicles) {
+  const rowsEl = document.getElementById('track-rows');
+
+  // Clear existing dot refs; rows will be rebuilt
+  for (const id of Object.keys(trackEls)) delete trackEls[id];
+
+  if (!vehicles || vehicles.length === 0) {
+    rowsEl.innerHTML = '<p class="tbl-empty">No active trains</p>';
+    return;
+  }
+
+  // Enrich with progress and sort Tallawong→Sydenham
+  const enriched = vehicles
+    .map(v => ({ ...v, _prog: trainProgress(v.latitude, v.longitude) }))
+    .sort((a, b) => a._prog - b._prog);
+
+  // Build all tick marks HTML once (same for every row)
+  const ticksHtml = ROUTE.map((s, i) => {
+    const pct = (routeCumKm[i] / routeTotalKm * 100).toFixed(2);
+    return `<div class="track-seg-tick${s.ix?' ix':''}" style="left:${pct}%" title="${s.name}"></div>`;
+  }).join('');
+
+  rowsEl.innerHTML = enriched.map(v => {
+    const stopped  = v.vehicleStatus === 'STOPPED_AT';
+    const arrow    = v.vehicleStatus === 'STOPPED_AT' ? '■' : dirArrow(v.bearing);
+    const speedTxt = v.speed ? Math.round(v.speed * 3.6) + ' km/h' : '—';
+    const pct      = (v._prog * 100).toFixed(2);
+    return `<div class="track-row">
+      <div class="track-id-cell"><code>${esc(v.vehicleId)}</code></div>
+      <div class="track-bar-wrap">
+        <div class="track-line"></div>
+        ${ticksHtml}
+        <div class="track-dot${stopped?' stopped':''}" id="tdot-${v.vehicleId}" style="left:${pct}%">${arrow}</div>
+      </div>
+      <div class="track-info-cell">${statusBadge(v.vehicleStatus)}<br>${arrow} ${speedTxt}</div>
+    </div>`;
+  }).join('');
+
+  // Register dot refs for animation
+  enriched.forEach(v => {
+    trackEls[v.vehicleId] = document.getElementById('tdot-' + v.vehicleId);
+  });
+}
+
 // ── Status bar ────────────────────────────────────────────────────────────────
 const dotEl    = document.getElementById('status-dot');
 const txtEl    = document.getElementById('status-text');
@@ -652,12 +833,15 @@ function setStatus(status, vehicles, lastUpdated) {
 // ── View toggle ───────────────────────────────────────────────────────────────
 const mapWrap   = document.querySelector('.map-wrap');
 const tableWrap = document.getElementById('table-wrap');
+const trackWrap = document.getElementById('track-wrap');
 
 function switchView(view) {
-  document.getElementById('btn-map').classList.toggle('active',   view === 'map');
-  document.getElementById('btn-table').classList.toggle('active', view === 'table');
+  ['map','table','track'].forEach(v => {
+    document.getElementById('btn-'+v).classList.toggle('active', v === view);
+  });
   mapWrap.style.display   = view === 'map'   ? '' : 'none';
   tableWrap.style.display = view === 'table' ? 'block' : 'none';
+  trackWrap.style.display = view === 'track' ? 'block' : 'none';
 }
 
 // ── Nearest-station helpers ───────────────────────────────────────────────────
@@ -751,6 +935,7 @@ async function poll() {
     setStatus(data.status, data.vehicles, data.lastUpdated);
     updateTrains(data.vehicles);
     updateTable(data.vehicles);
+    updateTrack(data.vehicles);
   } catch { setStatus('fetch_error', [], null); }
   countdown = INTERVAL;
 }
@@ -760,6 +945,7 @@ setInterval(() => {
   else cdEl.textContent = `Refreshing in ${countdown}s`;
 }, 1000);
 
+buildTrackHeader();
 requestAnimationFrame(animateDR);
 poll();
 </script>
