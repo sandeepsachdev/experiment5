@@ -212,7 +212,7 @@
     }
     .track-id-spacer { width: 70px; flex-shrink: 0; margin-right: 10px; }
     .track-station-bar {
-      flex: 1; position: relative; height: 66px; margin-right: 140px;
+      flex: 1; position: relative; height: 66px; margin-right: 170px;
     }
     .track-tick {
       position: absolute; bottom: 0; transform: translateX(-50%);
@@ -256,8 +256,9 @@
     }
     .track-dot.stopped { background: #00d4aa; box-shadow: 0 0 7px rgba(0,212,170,.6); }
     .track-info-cell {
-      width: 130px; flex-shrink: 0; font-size: .7rem; color: #7a9bbf; line-height: 1.6;
+      width: 160px; flex-shrink: 0; font-size: .7rem; color: #7a9bbf; line-height: 1.6;
     }
+    .track-next { font-size: .65rem; color: #4a7a9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
     /* ── Mobile ────────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
@@ -759,6 +760,29 @@ function dirArrow(bearing) {
   return (bearing > 45 && bearing <= 225) ? '▶' : '◀';
 }
 
+// Find the next station the train is heading toward.
+// For stopped trains, returns the station it's at.
+// For moving trains, projects onto the nearest segment and returns
+// the leading end based on bearing direction.
+function nextStation(lat, lon, bearing, status) {
+  if (status === 'STOPPED_AT') {
+    return nearestStation(lat, lon).name;
+  }
+  const cf = Math.cos(lat * Math.PI / 180);
+  let bestSeg = 0, bestD2 = Infinity;
+  for (let i = 0; i < ROUTE.length - 1; i++) {
+    const a = ROUTE[i], b = ROUTE[i+1];
+    const ax = a.lon*cf, ay = a.lat, bx = b.lon*cf, by = b.lat;
+    const px = lon*cf, py = lat;
+    const abx = bx-ax, aby = by-ay, ab2 = abx*abx + aby*aby;
+    const t   = ab2 > 0 ? Math.max(0, Math.min(1, ((px-ax)*abx + (py-ay)*aby) / ab2)) : 0;
+    const dx  = px-(ax+t*abx), dy = py-(ay+t*aby);
+    if (dx*dx + dy*dy < bestD2) { bestD2 = dx*dx + dy*dy; bestSeg = i; }
+  }
+  const toSyd = bearing > 45 && bearing <= 225;
+  return ROUTE[Math.min(ROUTE.length-1, toSyd ? bestSeg+1 : bestSeg)].name;
+}
+
 function updateTrack(vehicles) {
   const rowsEl = document.getElementById('track-rows');
 
@@ -783,9 +807,11 @@ function updateTrack(vehicles) {
 
   rowsEl.innerHTML = enriched.map(v => {
     const stopped  = v.vehicleStatus === 'STOPPED_AT';
-    const arrow    = v.vehicleStatus === 'STOPPED_AT' ? '■' : dirArrow(v.bearing);
+    const arrow    = stopped ? '■' : dirArrow(v.bearing);
     const speedTxt = v.speed ? Math.round(v.speed * 3.6) + ' km/h' : '—';
     const pct      = (v._prog * 100).toFixed(2);
+    const next     = nextStation(v.latitude, v.longitude, v.bearing, v.vehicleStatus);
+    const nextLbl  = stopped ? `⊙ ${esc(next)}` : `→ ${esc(next)}`;
     return `<div class="track-row">
       <div class="track-id-cell"><code>${esc(v.vehicleId)}</code></div>
       <div class="track-bar-wrap">
@@ -793,7 +819,7 @@ function updateTrack(vehicles) {
         ${ticksHtml}
         <div class="track-dot${stopped?' stopped':''}" id="tdot-${v.vehicleId}" style="left:${pct}%">${arrow}</div>
       </div>
-      <div class="track-info-cell">${statusBadge(v.vehicleStatus)}<br>${arrow} ${speedTxt}</div>
+      <div class="track-info-cell">${statusBadge(v.vehicleStatus)}<br>${arrow} ${speedTxt}<span class="track-next">${nextLbl}</span></div>
     </div>`;
   }).join('');
 
