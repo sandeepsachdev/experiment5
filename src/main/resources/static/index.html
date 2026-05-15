@@ -68,10 +68,7 @@
     #banner a { color: #009B77; }
     #banner code { background: #1e3a5f; padding: 1px 5px; border-radius: 3px; }
 
-    #countdown {
-      position: absolute; bottom: 12px; right: 16px;
-      font-size: .68rem; color: #2a4a6a;
-    }
+    #countdown { display: none; }
 
     .legend {
       position: absolute; bottom: 12px; left: 16px;
@@ -271,7 +268,7 @@
         align-items: center;
       }
       .logo-text p { display: none; }
-      #update-time { display: none; }
+      #update-time { font-size: .72rem; }
       .view-toggle { flex: 0 0 100%; order: 10; border-radius: 8px; }
       .view-btn    { flex: 1; text-align: center; padding: 8px 0; }
 
@@ -877,7 +874,6 @@ function setStatus(status, vehicles, lastUpdated) {
   } else {
     dotEl.classList.add('error'); txtEl.textContent = 'Error'; cntEl.textContent = '';
   }
-  if (lastUpdated) timeEl.textContent = 'Updated ' + new Date(lastUpdated).toLocaleTimeString();
 }
 
 // ── View toggle ───────────────────────────────────────────────────────────────
@@ -976,7 +972,7 @@ document.querySelectorAll('.trains-table th[data-col]').forEach(th => {
 });
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
-const INTERVAL = 30;
+const INTERVAL = 10;
 let countdown = 0;
 
 async function poll() {
@@ -991,8 +987,8 @@ async function poll() {
 }
 
 setInterval(() => {
-  if (--countdown <= 0) { cdEl.textContent = 'Refreshing…'; poll(); }
-  else cdEl.textContent = `Refreshing in ${countdown}s`;
+  if (--countdown <= 0) { timeEl.textContent = 'Refreshing…'; poll(); }
+  else timeEl.textContent = `Refresh in ${countdown}s`;
 }, 1000);
 
 buildTrackHeader();
