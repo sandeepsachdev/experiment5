@@ -607,7 +607,7 @@ document.getElementById('metro-map').addEventListener('click', e => {
 // blend from the current displayed position to the real fix over CORR_SECS.
 
 const CORR_SECS = 2.5;
-const trainState = {}; // { lat, lon, speed, bearing, progress, direction, fixSec, corrStart, corrFrom, corrTo }
+const trainState = {}; // { lat, lon, speed, bearing, progress, direction, gpsFix, fixSec, corrStart, corrFrom, corrTo }
 
 function smoothStep(t) { return t * t * (3 - 2 * t); }
 
@@ -708,6 +708,7 @@ function updateTrains(vehicles) {
         lat: v.latitude, lon: v.longitude,
         speed: v.speed || 0, bearing: v.bearing || 0,
         progress: prog0, direction: dir0,
+        gpsFix: v.timestamp || 0,
         fixSec: nowSec,
         corrStart: null, corrFrom: null, corrTo: null,
       };
@@ -715,18 +716,28 @@ function updateTrains(vehicles) {
       trainEls[v.vehicleId].setAttribute('transform', `translate(${ix0.toFixed(1)},${iy0.toFixed(1)})`);
     } else {
       // ── GPS refresh for existing train ────────────────────────────────────
-      const currentProg = displayProgress(trainState[v.vehicleId]);
-      const newProg     = trainProgress(v.latitude, v.longitude);
-      const dir1        = v.bearing ? ((v.bearing > 45 && v.bearing <= 225) ? 1 : -1) : 0;
-      trainState[v.vehicleId] = {
-        lat: v.latitude, lon: v.longitude,
-        speed: v.speed || 0, bearing: v.bearing || 0,
-        progress: newProg, direction: dir1,
-        fixSec: nowSec,
-        corrStart: nowSec,
-        corrFrom: { progress: currentProg },
-        corrTo:   { progress: newProg },
-      };
+      const st   = trainState[v.vehicleId];
+      const dir1 = v.bearing ? ((v.bearing > 45 && v.bearing <= 225) ? 1 : -1) : 0;
+      if (v.timestamp && v.timestamp === st.gpsFix) {
+        // Same GPS fix — server is serving cached data; keep animating, don't correct
+        st.speed     = v.speed   || 0;
+        st.bearing   = v.bearing || 0;
+        st.direction = dir1;
+      } else {
+        // New GPS fix — smooth-blend from current displayed position to new GPS position
+        const currentProg = displayProgress(st);
+        const newProg     = trainProgress(v.latitude, v.longitude);
+        trainState[v.vehicleId] = {
+          lat: v.latitude, lon: v.longitude,
+          speed: v.speed || 0, bearing: v.bearing || 0,
+          progress: newProg, direction: dir1,
+          gpsFix: v.timestamp || 0,
+          fixSec: nowSec,
+          corrStart: nowSec,
+          corrFrom: { progress: currentProg },
+          corrTo:   { progress: newProg },
+        };
+      }
     }
 
     const body = trainEls[v.vehicleId].querySelector('.train-body');

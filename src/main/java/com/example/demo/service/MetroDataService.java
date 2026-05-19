@@ -43,7 +43,7 @@ public class MetroDataService {
     @PostConstruct
     void init() { fetchAndCache(); }
 
-    @Scheduled(fixedDelay = 30_000)
+    @Scheduled(fixedDelay = 10_000)
     void refresh() { fetchAndCache(); }
 
     public VehicleResponse latest() { return cache.get(); }
